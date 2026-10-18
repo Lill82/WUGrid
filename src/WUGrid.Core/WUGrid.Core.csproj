@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <Reference Include="System.Management" />
+    <InternalsVisibleTo Include="WUGrid.Core.Tests" />
+    <EmbeddedResource Include="Errors\*.tsv" LogicalName="WUGrid.Errors.%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

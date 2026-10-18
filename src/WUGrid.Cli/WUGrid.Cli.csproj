@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>wugrid-cli</AssemblyName>
+    <ApplicationIcon>..\..\assets\WUGrid.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\WUGrid.Core\WUGrid.Core.csproj" />
+  </ItemGroup>
+</Project>

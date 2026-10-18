@@ -1,0 +1,16 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>12</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Deterministic>true</Deterministic>
+    <Product>WUGrid</Product>
+    <!-- Bump for every iteration: tools\Publish-Build.ps1 builds into builds\<Version>\ -->
+    <Version>0.5.0</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Lets the solution build on machines without the .NET Framework 4.8 targeting pack (CI, contributors) -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

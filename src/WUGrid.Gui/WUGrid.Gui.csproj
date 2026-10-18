@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>WUGrid</AssemblyName>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\..\assets\WUGrid.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- The same icon for the windows' title bars (tools\New-AppIcon.ps1 draws it) -->
+    <EmbeddedResource Include="..\..\assets\WUGrid.ico" LogicalName="WUGrid.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\WUGrid.Core\WUGrid.Core.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,13 @@
+# Build output
+bin/
+obj/
+.vs/
+*.user
+*.suo
+TestResults/
+__pycache__/
+builds/
+
+# Real-run material from a production estate: hostnames, domains, accounts. Never publish.
+samples/
+CLAUDE.local.md
