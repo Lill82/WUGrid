@@ -180,13 +180,14 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
 <main>
   <section class="hero">
     <div class="wrap">
-      <div class="badge"><b>Early development</b> · v0.5.0 · read-only unless you restart</div>
+      <div class="badge"><b>Early development</b> · v0.9.0 · read-only unless you restart</div>
       <h1>Watch every server through a Windows&nbsp;Update restart round</h1>
       <p class="lead">WUGrid shows each server's state every few seconds, restarts the ones you pick without forcing them,
         and checks what a green restart can hide. It works agentless over WMI/DCOM, so it runs where WinRM is closed
         and installs nothing on the servers.</p>
       <div class="buttons">
-        <a class="btn primary" href="#start">Get started</a>
+        <a class="btn primary" href="https://github.com/Lill82/WUGrid/releases/latest">Download</a>
+        <a class="btn" href="#start">Get started</a>
         <a class="btn" href="https://github.com/Lill82/WUGrid">View on GitHub</a>
       </div>
       <figure class="shot">
@@ -384,23 +385,25 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
     <div class="wrap">
       <div class="center">
         <h2>Get started</h2>
-        <p class="sub">WUGrid is in early development. There are no release downloads yet, so build it from source; it
-          takes a minute.</p>
+        <p class="sub">WUGrid is in early development: download the latest release, or build it from source in a
+          minute.</p>
       </div>
       <div class="cards">
+        <div class="card">
+          <h3>Download</h3>
+          <p>A zip with <code>WUGrid.exe</code> and <code>wugrid-cli.exe</code>: unzip it anywhere and run, nothing to
+            install. The binaries are not signed yet, so unblock the zip first (Properties → Unblock).</p>
+          <p><a class="btn primary" href="https://github.com/Lill82/WUGrid/releases/latest">Latest release</a></p>
+          <p>Or build it, with the .NET SDK 8 or later:</p>
+<pre class="term"><span class="p">&gt;</span> git clone https://github.com/Lill82/WUGrid
+<span class="p">&gt;</span> dotnet build WUGrid.sln -c Release</pre>
+        </div>
         <div class="card">
           <h3>Try the demo</h3>
           <p>A simulated 75-minute round of 14 made-up servers, with every pattern from the field notes. No server is
             contacted.</p>
 <pre class="term"><span class="p">&gt;</span> WUGrid.exe --demo
 <span class="p">&gt;</span> wugrid-cli watch --demo</pre>
-        </div>
-        <div class="card">
-          <h3>Build</h3>
-          <p>Needs the .NET SDK 8 or later. The .NET Framework 4.8 reference assemblies come from NuGet.</p>
-<pre class="term"><span class="p">&gt;</span> git clone https://github.com/Lill82/WUGrid
-<span class="p">&gt;</span> dotnet build WUGrid.sln -c Release
-<span class="p">&gt;</span> dotnet test WUGrid.sln</pre>
         </div>
         <div class="card">
           <h3>Requirements</h3>
@@ -420,10 +423,10 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
       <ol class="roadmap">
         <li><span class="m">M0</span><span class="s done">done</span><span class="d"><b>Foundation:</b> solution, tests, CI, anonymised field notes</span></li>
         <li><span class="m">M1</span><span class="s built">built</span><span class="d"><b>Watch:</b> live grid, console grid, headless events, state JSON</span></li>
-        <li><span class="m">M2</span><span class="s done">done</span><span class="d"><b>Verify:</b> update results, services baseline, who restarted, report</span></li>
-        <li><span class="m">M3</span><span class="s cut">first cut</span><span class="d"><b>Restart:</b> guards, re-check, never forced, audit, expected stops; waves and a protect list next</span></li>
+        <li><span class="m">M2</span><span class="s done">done</span><span class="d"><b>Verify:</b> update results, services baseline and why a service did not start, who restarted, report</span></li>
+        <li><span class="m">M3</span><span class="s cut">first cut</span><span class="d"><b>Restart:</b> guards (update work, users signed in), re-check, never forced, audit, expected stops; waves and a protect list next</span></li>
         <li><span class="m">M4</span><span class="s next">next</span><span class="d"><b>Updates:</b> scan → approve → install → restart → verify, agentless</span></li>
-        <li><span class="m">M5</span><span class="s plan">planned</span><span class="d"><b>Release:</b> docs, release zip, versioning</span></li>
+        <li><span class="m">M5</span><span class="s cut">first cut</span><span class="d"><b>Release:</b> zip on GitHub Releases from 0.9.0; docs and code signing next</span></li>
       </ol>
     </div>
   </section>

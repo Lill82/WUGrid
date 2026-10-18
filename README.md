@@ -92,6 +92,12 @@ Requirements: Windows with .NET Framework 4.8 on the admin workstation; ICMP, DC
 the servers; an account that is an administrator on them (restarting also needs the remote shutdown right, which
 administrators have). Nothing is installed on the servers.
 
+## Download
+
+The latest release on [GitHub Releases](https://github.com/Lill82/WUGrid/releases/latest) is a zip: unzip it anywhere and
+run `WUGrid.exe` or `wugrid-cli.exe`, nothing to install. The binaries are not signed yet: unblock the zip first
+(Properties → Unblock), or Windows SmartScreen asks before they start.
+
 ## Build
 
 Requires the .NET SDK 8 or later (the .NET Framework 4.8 reference assemblies come from NuGet).

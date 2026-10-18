@@ -64,6 +64,11 @@ the targeting pack. The legacy scripts are Windows PowerShell 5.1 — see the 5.
 
 - M0 done; MIT licence (`LICENSE`, Alex Lillo). Public at `github.com/Lill82/WUGrid` since 2026-10-18; CI on GitHub
   Actions; the project page deploys from `site/` through GitHub Pages (`pages.yml`).
+- Releases on GitHub Releases since v0.9.0 (2026-10-18). Per release: `tools\Publish-Build.ps1`, then
+  `WUGrid-<version>.zip` (a `WUGrid-<version>\` folder: both exes and their `.config`, `WUGrid.Core.dll`, `LICENSE`,
+  `THIRD-PARTY-NOTICES.md`, `README.md`; no PDBs), annotated tag `v<version>`, `gh release create` with the SHA-256 in
+  the notes. Unsigned. The page's Download buttons point at `/releases/latest`: bump the badge in `site/index.html` and
+  regenerate the pictures (`tools\New-Screenshots.ps1`) for each release.
 - M1 built: live grid (WMI/DCOM probe, thread per server), Servers window with access check, asterisk footnote,
   error catalog, demo, polling interval, `wugrid-cli watch` (console grid, `--headless` events, live list reload,
   state JSON, events JSONL). All-clean waits for each server's checks (`ServerRow.ChecksDone`). Still open: the parity

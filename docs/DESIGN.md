@@ -206,7 +206,7 @@ ConfigMgr or other management agent is assumed.
 | **M2** Verify (read-only) — done | Patch-level outcome, services baseline, who restarted / boot count, end-of-round report | catches the two green-but-wrong cases in the field notes (it caught a real third one on its first run) |
 | **M3** Restart — first cut done, first real run 18-10 | Reboot window: guards, re-check, never forced, confirmation, audit, check-only; expected service stops (0.7.0); servers with users signed in skipped (0.8.0); why a service did not start (0.9.0). Open: waves, protect list, CLI | a test server restarted and verified end to end — met 18-10: five servers in two batches from the Reboot window |
 | **M4** Updates | Spike the routes above; WUA provider; scan → approve → install → restart (M3) → verify (M2) | a test wave patched end to end |
-| **M5** Release | Docs, release zip, versioning, (code signing) | public release |
+| **M5** Release — first cut: v0.9.0 on GitHub Releases | Docs, release zip, versioning, (code signing). Built: the zip (both exes, `WUGrid.Core.dll`, configs, licence, notices, README), unsigned | public release |
 
 The legacy round's candidate list maps as: patch-level outcome, services baseline, who restarted, end-of-round report →
 M2; one tool instead of two → M1; de-estate-ify → M0/M1.
