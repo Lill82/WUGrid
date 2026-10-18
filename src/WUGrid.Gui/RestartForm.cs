@@ -39,7 +39,8 @@ namespace WUGrid.Gui
 
         /// <param name="report">Told every result, on the UI thread (the main window logs it in the event pane).</param>
         /// <param name="preview">Shows the list and the reasons but never sends or records anything (the screenshots).</param>
-        public RestartForm(Func<RoundSnapshot> snapshot, Action<RestartResult, RestartOptions> report, bool preview = false)
+        /// <param name="tick">A server to tick on opening (the grid's right-click), if it can be restarted now.</param>
+        public RestartForm(Func<RoundSnapshot> snapshot, Action<RestartResult, RestartOptions> report, bool preview = false, string tick = null)
         {
             this.snapshot = snapshot;
             this.report = report;
@@ -85,7 +86,16 @@ namespace WUGrid.Gui
             Controls.Add(BuildButtons());
 
             timer.Tick += (s, e) => RefreshList();
-            Load += (s, e) => { RefreshList(); timer.Start(); };
+            Load += (s, e) =>
+            {
+                RefreshList();
+                if (tick != null)
+                {
+                    Tick(name => string.Equals(name, tick, StringComparison.OrdinalIgnoreCase));
+                    list.Items[tick]?.EnsureVisible();
+                }
+                timer.Start();
+            };
             FormClosed += (s, e) => timer.Stop();
         }
 

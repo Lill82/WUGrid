@@ -54,7 +54,8 @@ wugrid-cli error 0x800F0840                 explain an error code
   a background task follows. `--state FILE` rewrites the round as JSON on every refresh, `--events FILE` appends each
   event as a JSON line. Exit code 0 when every server ended back clean, 1 otherwise. `--demo` plays the simulated round.
 - **Report…** saves the round as an HTML page (summary + what needs attention, to mail or attach to a change) or CSV.
-- **Reboot…** restarts the servers you tick — the only thing WUGrid changes on a server:
+- **Reboot…** restarts the servers you tick — the only thing WUGrid changes on a server. Right-click a row for
+  **Reboot <server>…**: the same window with that server ticked (greyed with the reason when it cannot be restarted now):
   - only servers whose last poll shows no update work can be ticked (not while `TiWorker.exe`, `TrustedInstaller.exe`,
     `msiexec.exe`, `wusa.exe`, `dism.exe`, `SetupHost.exe` run, during component cleanup, or while installing before a
     shutdown already under way), and each is checked again just before the restart is sent;

@@ -185,9 +185,33 @@ namespace WUGrid.Gui
             }
         }
 
-        void Reboot()
+        /// <param name="server">Ticked on opening (right-click on its row); the plan and confirmation stay the Reboot window's.</param>
+        void Reboot(string server = null)
         {
-            using (var dialog = new RestartForm(() => lastSnapshot, Restarted)) dialog.ShowDialog(this);
+            using (var dialog = new RestartForm(() => lastSnapshot, Restarted, tick: server)) dialog.ShowDialog(this);
+        }
+
+        // Right-click a row: Reboot… for a server the guard allows now; for any other the item is greyed with the reason
+        void ShowRowMenu(int rowIndex, Point at)
+        {
+            var name = (string)grid.Rows[rowIndex].Cells["Server"].Value;
+            var row = lastSnapshot?.Rows.FirstOrDefault(r => string.Equals(r.Name, name, StringComparison.OrdinalIgnoreCase));
+            if (row == null) return;
+            grid.ClearSelection();
+            grid.Rows[rowIndex].Selected = true;
+            var el = RestartGuard.Check(row.Observation, row.Status);
+            var menu = new ContextMenuStrip();
+            var reboot = new ToolStripMenuItem(el.Allowed ? $"Reboot {name}…" : $"Reboot {name}: no — {el.Reason}") { Enabled = el.Allowed };
+            if (el.Allowed)
+            {
+                reboot.Font = new Font(reboot.Font, FontStyle.Bold);
+                reboot.Click += (s, e) => Reboot(name);
+            }
+            var details = new ToolStripMenuItem("Details…");
+            details.Click += (s, e) => ShowDetails(name);
+            menu.Items.AddRange(new ToolStripItem[] { reboot, new ToolStripSeparator(), details });
+            menu.Closed += (s, e) => BeginInvoke((Action)menu.Dispose);
+            menu.Show(grid, at);
         }
 
         /// <summary>Mark service stops as expected; <paramref name="server"/> pre-ticks that server's. Changes go to the event
@@ -313,6 +337,14 @@ namespace WUGrid.Gui
             {
                 if (e.RowIndex >= 0) ShowDetails((string)grid.Rows[e.RowIndex].Cells["Server"].Value);
             };
+            // Right-click a row to reboot that server (live round only: the demo sends nothing)
+            if (live != null)
+                grid.CellMouseClick += (s, e) =>
+                {
+                    if (e.Button != MouseButtons.Right || e.RowIndex < 0) return;
+                    var cell = grid.GetCellDisplayRectangle(e.ColumnIndex, e.RowIndex, false);
+                    ShowRowMenu(e.RowIndex, new Point(cell.X + e.X, cell.Y + e.Y));
+                };
         }
 
         void AddColumn(string name, string header, float weight)

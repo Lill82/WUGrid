@@ -151,7 +151,7 @@ checks, `--html` / `--csv`).
 
 ### Restart
 
-Built (GUI **Reboot…**). `Win32_OperatingSystem.Win32ShutdownTracker` over DCOM, **never forced**: flags 2 (reboot
+Built (GUI **Reboot…**, or right-click a row: the same window with that server ticked). `Win32_OperatingSystem.Win32ShutdownTracker` over DCOM, **never forced**: flags 2 (reboot
 without `EWX_FORCE`), reason `0x80020011` (Operating System: Hotfix, planned), a comment naming the operator and
 workstation (lands in System event 1074), and a warning period (0–300 s, default 60) during which the restart can be
 aborted on the server with `shutdown /a`. The connection enables the caller's privileges (SeRemoteShutdownPrivilege);

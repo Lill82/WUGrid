@@ -48,7 +48,7 @@ the targeting pack. The legacy scripts are Windows PowerShell 5.1 — see the 5.
   `ServerList`, `Demo/` (scripted round).
 - `src/WUGrid.Cli` — `wugrid-cli.exe` (`watch`: console grid / `--headless` events, `--state` JSON, `--events` JSONL;
   `check`, `verify`, `error`). `Reports/ConsoleGrid` (pure) lays out its frame, `Reports/RoundJson` writes its files. `src/WUGrid.Gui` — `WUGrid.exe`: live grid + event pane,
-  Servers…, Reboot…, Report…, Error codes…, server details (double-click); `--demo` plays the simulated round.
+  Servers…, Reboot…, Report…, Error codes…, server details (double-click), right-click Reboot… (Reboot window with that server ticked); `--demo` plays the simulated round.
 - `tools/update_error_catalog.py` — regenerates `Errors/error-codes.microsoft.tsv` from Microsoft Learn (never edit that
   file by hand; WUGrid's own explanations go in `error-codes.wugrid.tsv`).
 - `assets/WUGrid.ico` — app icon for both exes and the windows, drawn by `tools/New-AppIcon.ps1` (edit the script, not
