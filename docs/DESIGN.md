@@ -172,7 +172,7 @@ ConfigMgr or other management agent is assumed.
 | **M0** Foundation — done | Solution, build, tests; anonymised field notes and fixtures; licence; CI (GitHub Actions, windows runner); first commit | builds from a clean clone; no estate names in tracked files |
 | **M1** Watch (read-only) — built | Probe, monitor, live list reload, transitions + alarms log, state JSON; `wugrid-cli watch` (console grid, `--headless` events); GUI grid. Open: the parity run | parity with the legacy grid against real servers |
 | **M2** Verify (read-only) — done | Patch-level outcome, services baseline, who restarted / boot count, end-of-round report | catches the two green-but-wrong cases in the field notes (it caught a real third one on its first run) |
-| **M3** Restart — first cut done | Reboot window: guards, re-check, never forced, confirmation, audit, check-only. Open: waves, protect list, CLI | a test server restarted and verified end to end |
+| **M3** Restart — first cut done, first real run 18-10 | Reboot window: guards, re-check, never forced, confirmation, audit, check-only. Open: waves, protect list, CLI, acknowledging expected service stops, SCM start-failure events for flagged services (FIELD-NOTES) | a test server restarted and verified end to end — met 18-10: five servers in two batches from the Reboot window |
 | **M4** Updates | Spike the routes above; WUA provider; scan → approve → install → restart (M3) → verify (M2) | a test wave patched end to end |
 | **M5** Release | Docs, release zip, versioning, (code signing) | public release |
 

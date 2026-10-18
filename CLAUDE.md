@@ -69,5 +69,7 @@ the targeting pack. The legacy scripts are Windows PowerShell 5.1 — see the 5.
 - M2 done: baseline, verification passes, update-failed / service-not-running flags, details window, HTML/CSV report,
   `wugrid-cli verify`.
 - M3 first cut: Reboot window (`Restart/`: `RestartGuard`, `RestartAction`, `AuditLog`), never forced, check-only.
-  Open: waves, protect list, CLI.
+  First real run 2026-10-18: five servers restarted from the Reboot window in two batches and verified end to end
+  (FIELD-NOTES). Open: waves, protect list, CLI, acknowledging expected service stops, SCM start-failure events for
+  flagged services.
 - Decide on event IDs + source + insertion strings (see `VerificationBuilder`); the Setup log is not readable over WMI.

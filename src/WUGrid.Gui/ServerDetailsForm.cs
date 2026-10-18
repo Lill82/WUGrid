@@ -49,7 +49,8 @@ namespace WUGrid.Gui
             host.Controls.Add(text);
 
             var bar = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = (int)(48 * scale), FlowDirection = FlowDirection.RightToLeft, Padding = new Padding((int)(8 * scale)) };
-            var close = new Button { Text = "Close", DialogResult = DialogResult.Cancel, AutoSize = true, MinimumSize = new Size((int)(80 * scale), 0) };
+            var close = new Button { Text = "Close", AutoSize = true, MinimumSize = new Size((int)(80 * scale), 0) };
+            close.Click += (s, e) => Close();   // modeless window (Show, not ShowDialog): a DialogResult alone closes nothing
             bar.Controls.Add(close);
             lookup.Click += (s, e) => { using (var f = new ErrorLookupForm(firstCode == 0 ? (int?)null : firstCode)) f.ShowDialog(this); };
             bar.Controls.Add(lookup);
