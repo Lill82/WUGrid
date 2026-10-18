@@ -172,6 +172,15 @@ terminal service for the printers) on several servers. Checked on two of them by
 - Windows Internal Database (above) fails the same way at every boot until the feature itself is removed: its data
   files are gone, its service is still installed and Automatic.
 
+## Updates installed on a server already BACK (18-10, evening)
+
+Two hours after its restart in the round, SRV-L ran Windows Modules Installer again (18:06–18:12, two runs, each
+ending with the service's ~2 min idle stop) and came out with CBS 71 packages pending. The operator saw TiWorker on the
+server while the grid's row said only `BACK · PENDING — reboot pending again (CBS 71 pkgs)`: the RebootPending mark
+appears early in the install, the row becomes flagged, and the classifier returned on the flag before the TiWorker note
+(`servicing finishing` was only written for clean rows). Since 0.9.1 a flagged row adds `TiWorker running` to its note.
+The Reboot window already refused it meanwhile (busy processes are checked on every row, not only INSTALLING).
+
 ## PowerShell 5.1 traps hit while writing these
 
 - `@($null).Count` is **1**. `StdRegProv.EnumKey` returns `sNames = $null` for an empty key, so

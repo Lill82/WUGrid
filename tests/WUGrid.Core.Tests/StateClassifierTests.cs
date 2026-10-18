@@ -157,6 +157,15 @@ namespace WUGrid.Core.Tests
         }
 
         [Fact]
+        public void TiWorkerOnAFlaggedRow_IsStillNamed()
+        {
+            var o = Back(); o.TiWorker = true; o.CbsRebootPending = true; o.CbsPackagesPending = 71;
+            var s = Classify(o);
+            Assert.Equal("BACK · PENDING", s.Label);
+            Assert.Equal("reboot pending again (CBS 71 pkgs); TiWorker running", s.Note);
+        }
+
+        [Fact]
         public void ComponentCleanup_WinsOverServicingNote()
         {
             var o = Back(); o.TiWorker = true; o.CbsRebootPending = true;

@@ -87,6 +87,9 @@ namespace WUGrid.Core
                 }
             }
 
+            // A flagged row still says TiWorker is running: updates installed after the restart stage packages, so the row
+            // goes BACK · PENDING while TiWorker works (FIELD-NOTES, 18-10 evening)
+            if (flags != BackFlag.None && o.TiWorker) notes.Add("TiWorker running");
             if (flags != BackFlag.None)
                 return new ServerStatus(ServerState.Back, flags, elapsed: up, note: Join(string.Join("; ", notes), expectedNote));
 
