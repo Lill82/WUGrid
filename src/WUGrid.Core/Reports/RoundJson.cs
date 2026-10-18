@@ -63,6 +63,9 @@ namespace WUGrid.Core.Reports
                 .Raw("updatesFailed", Json.Array((v?.Failed ?? Enumerable.Empty<Verification.UpdateResult>())
                     .Select(u => new JsonObject().Str("update", u.Label).Str("code", ErrorCatalog.Hex(u.ErrorCode)).ToString())))
                 .Raw("servicesNotRunning", Json.Strings(v?.StoppedServices.Select(i => i.Service.Name) ?? Enumerable.Empty<string>()))
+                .Num("servicesExpected", o.Baseline != null ? (long?)o.Baseline.RunningAutoServices.Count : null)
+                .Raw("servicesMarkedForDeletion", Json.Strings(o.Baseline?.MarkedForDeletion.Keys ?? Enumerable.Empty<string>()))
+                .Raw("servicesRemoved", Json.Strings(v?.RemovedServices.Select(s => s.Name) ?? Enumerable.Empty<string>()))
                 .ToString();
         }
 

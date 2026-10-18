@@ -13,7 +13,9 @@ namespace WUGrid.Core.Tests
     public class RoundJsonTests
     {
         static readonly DateTime Since = new DateTime(2026, 10, 17, 15, 0, 0);
-        static readonly Baseline Before = new Baseline(Since.AddMinutes(-1), "17763.8644", new Dictionary<string, string>());
+        static readonly Baseline Before = new Baseline(Since.AddMinutes(-1), "17763.8644",
+            new Dictionary<string, string> { ["AppDbSvc"] = "App \"Db\"", ["W32Time"] = "Windows Time" },
+            new Dictionary<string, string> { ["OldAgent"] = "Old Agent" });
 
         static RoundSnapshot Round()
         {
@@ -22,7 +24,8 @@ namespace WUGrid.Core.Tests
                 Since.AddMinutes(20), failed.LastBoot.Value, "17763.8880",
                 new[] { new UpdateResult(Since.AddMinutes(12), "2026-09 Cumulative Update (KB5900001)", "KB5900001", "{id}", false, unchecked((int)0x800F0840)) },
                 new RestartRecord[0], new BootRecord[0], false,
-                new[] { new ServiceIssue(new ServiceRecord("AppDbSvc", "App \"Db\"", "Stopped", "Disabled"), null) }, true, true, true);
+                new[] { new ServiceIssue(new ServiceRecord("AppDbSvc", "App \"Db\"", "Stopped", "Disabled"), null) }, true, true, true,
+                new[] { new ServiceRecord("OldAgent", "Old Agent", "Missing", "") });
             var booting = new Observation { Ping = true, Wmi = WmiResult.Failed, WmiError = "Access is denied.", WmiHResult = unchecked((int)0x80070005) };
             var pending = new Observation { Ping = true, Wmi = WmiResult.Ok, LastBoot = Since.AddDays(-90), CbsRebootPending = true, CbsPackagesPending = 40, WuRebootRequired = true };
             return new RoundSnapshot(Since.AddMinutes(30), Since, new Dictionary<string, Observation>
@@ -71,6 +74,10 @@ namespace WUGrid.Core.Tests
             var update = Objects(failed["updatesFailed"]).Single();
             Assert.Equal(("KB5900001", "0x800F0840"), ((string)update["update"], (string)update["code"]));
             Assert.Equal(new object[] { "AppDbSvc" }, (object[])failed["servicesNotRunning"]);
+            Assert.Equal(2, failed["servicesExpected"]);   // before: 2 expected back + 1 marked for deletion; after: 1 not running + 1 removed
+            Assert.Equal(new object[] { "OldAgent" }, (object[])failed["servicesMarkedForDeletion"]);
+            Assert.Equal(new object[] { "OldAgent" }, (object[])failed["servicesRemoved"]);
+            Assert.Null(rows["SRV03"]["servicesExpected"]);   // no baseline yet
 
             Assert.Equal("Booting", rows["SRV02"]["state"]);
             Assert.Equal("0x80070005", rows["SRV02"]["wmiError"]);

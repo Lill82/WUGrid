@@ -51,11 +51,13 @@ namespace WUGrid.Core.Verification
     /// <summary>Taken once, the first time a server is seen not yet restarted: what "before" looked like.</summary>
     public sealed class Baseline
     {
-        public Baseline(DateTime takenAt, string build, IReadOnlyDictionary<string, string> runningAutoServices)
+        public Baseline(DateTime takenAt, string build, IReadOnlyDictionary<string, string> runningAutoServices,
+                        IReadOnlyDictionary<string, string> markedForDeletion = null)
         {
             TakenAt = takenAt;
             Build = build;
             RunningAutoServices = runningAutoServices;
+            MarkedForDeletion = markedForDeletion ?? new Dictionary<string, string>();
         }
 
         public DateTime TakenAt { get; }
@@ -63,8 +65,13 @@ namespace WUGrid.Core.Verification
         /// <summary>"17763.8644" (build.UBR), or null when unknown.</summary>
         public string Build { get; }
 
-        /// <summary>Automatic services that were running: name → display name.</summary>
+        /// <summary>Automatic services that were running and are expected to run again after the restart: name → display name.</summary>
         public IReadOnlyDictionary<string, string> RunningAutoServices { get; }
+
+        /// <summary>Automatic services that were running but marked for deletion (DeleteFlag in their registry key: a role or
+        /// application removal deleted them while something still held them open). The Service Control Manager removes them
+        /// at the next boot, so they are not expected back and are not in <see cref="RunningAutoServices"/>.</summary>
+        public IReadOnlyDictionary<string, string> MarkedForDeletion { get; }
     }
 
     public sealed class UpdateResult
@@ -156,7 +163,8 @@ namespace WUGrid.Core.Verification
     {
         public ServerVerification(DateTime checkedAt, DateTime boot, string build, IReadOnlyList<UpdateResult> updates,
                                   IReadOnlyList<RestartRecord> restarts, IReadOnlyList<BootRecord> boots, bool unexpectedShutdown,
-                                  IReadOnlyList<ServiceIssue> stoppedServices, bool servicesChecked, bool comparedToBaseline, bool settled)
+                                  IReadOnlyList<ServiceIssue> stoppedServices, bool servicesChecked, bool comparedToBaseline, bool settled,
+                                  IReadOnlyList<ServiceRecord> removedServices = null)
         {
             CheckedAt = checkedAt;
             Boot = boot;
@@ -169,6 +177,7 @@ namespace WUGrid.Core.Verification
             ServicesChecked = servicesChecked;
             ComparedToBaseline = comparedToBaseline;
             Settled = settled;
+            RemovedServices = removedServices ?? new List<ServiceRecord>();
         }
 
         public DateTime CheckedAt { get; }
@@ -188,6 +197,11 @@ namespace WUGrid.Core.Verification
         public bool UnexpectedShutdown { get; }
 
         public IReadOnlyList<ServiceIssue> StoppedServices { get; }
+
+        /// <summary>Services the baseline found marked for deletion that did not come back: gone, or still registered but not
+        /// running until their last handle closes. Removed as planned, so not in <see cref="StoppedServices"/>; the before
+        /// and after counts reconcile through this list.</summary>
+        public IReadOnlyList<ServiceRecord> RemovedServices { get; }
 
         /// <summary>False until the server has been up long enough for delayed-start services.</summary>
         public bool ServicesChecked { get; }

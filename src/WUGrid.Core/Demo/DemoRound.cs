@@ -66,8 +66,10 @@ namespace WUGrid.Core.Demo
             new DemoScript("WEB02", 96, 0.3).Installing(3).Down(5.5).Booting(7, RpcUnavailable).Back(7.6, tiWorker: true).Back(10),
             new DemoScript("MON01", 52, 0.25).Installing(7).Down(9.5).Booting(11, AccessDenied).Back(11.5, tiWorker: true).Back(13),
             new DemoScript("RDS02", 75, 0.35).Installing(10).Down(12).Booting(13, RpcUnavailable).Back(14, tiWorker: true).Back(16),
+            // BACKUP01: the old backup agent was uninstalled before the round while its service ran, so the service was marked
+            // for deletion and goes at this boot — reported as removed, not as stopped
             new DemoScript("BACKUP01", 88, 0.3).Installing(1).Down(4).Booting(5.5, AccessDenied).Booting(6.2, RpcUnavailable)
-                .Back(6.8, tiWorker: true).Back(9, cleanup: true).Back(20),
+                .Back(6.8, tiWorker: true).Back(9, cleanup: true).Back(20).ServiceRemoved("LegacyBackupAgent", "Legacy Backup Agent"),
 
             // Stacked cumulative updates: comes back with packages pending, TrustedInstaller reboots it again
             new DemoScript("APP01", 110, 0.4).Installing(5).Down(8).Booting(9.5, AccessDenied).Back(10, tiWorker: true, packages: 12)

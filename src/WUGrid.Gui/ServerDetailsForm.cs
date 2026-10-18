@@ -135,13 +135,19 @@ namespace WUGrid.Gui
                 if (v.UnexpectedShutdown) d.Line("An unexpected shutdown was logged (event 6008).", body, Palette.AlarmText);
 
                 d.Heading("Services");
+                var expected = o.Baseline?.RunningAutoServices.Count ?? 0;
                 if (!v.ServicesChecked) d.Line($"Checked once the server has been up {VerificationLimits.ServicesAfter} min (delayed-start services).", body, Palette.MutedText);
                 else if (v.StoppedServices.Count == 0)
-                    d.Line(v.ComparedToBaseline ? "Every service that ran before the restart is running." : "Every Automatic service is running.", body, Palette.CleanText);
+                    d.Line(v.ComparedToBaseline ? $"Every service that ran before the restart is running ({expected} of {expected})." : "Every Automatic service is running.", body, Palette.CleanText);
                 else
                 {
-                    d.Line(v.ComparedToBaseline ? "Ran before the restart, not running now:" : "Automatic, not running (no baseline from before the restart):", body, Palette.MutedText);
+                    d.Line(v.ComparedToBaseline ? $"Ran before the restart, not running now ({v.StoppedServices.Count} of {expected}):" : "Automatic, not running (no baseline from before the restart):", body, Palette.MutedText);
                     foreach (var i in v.StoppedServices) d.Line("• " + RoundReport.ServiceLine(i), body, Palette.AlarmText);
+                }
+                if (v.RemovedServices.Count > 0)
+                {
+                    d.Line($"Marked for deletion before the restart, removed as planned ({v.RemovedServices.Count}):", body, Palette.MutedText);
+                    foreach (var removed in v.RemovedServices) d.Line("• " + RoundReport.RemovedLine(removed), body, Palette.MutedText);
                 }
 
                 d.Line("", body, Palette.Text);
@@ -153,6 +159,9 @@ namespace WUGrid.Gui
                 d.Line(o.Baseline != null
                     ? $"Baseline taken {o.Baseline.TakenAt:HH:mm}: build {o.Baseline.Build}, {o.Baseline.RunningAutoServices.Count} running Automatic services to compare after the restart."
                     : "Baseline not taken yet.", body, Palette.MutedText);
+                if (o.Baseline != null && o.Baseline.MarkedForDeletion.Count > 0)
+                    d.Line($"Marked for deletion, gone at the next boot and not expected back ({o.Baseline.MarkedForDeletion.Count}): " +
+                           string.Join(", ", o.Baseline.MarkedForDeletion.Select(kv => $"{kv.Value} ({kv.Key})")), body, Palette.MutedText);
             }
             if (o.VerificationError != null) d.Line("Last check failed: " + o.VerificationError, body, Palette.AlarmText);
         }

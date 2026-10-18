@@ -102,7 +102,11 @@ Setup event 3) will show its codes through the same catalog.
 `ServerProbe` collects, read-only, and `VerificationBuilder` (pure, unit-tested against real event layouts) interprets:
 
 - **Baseline**, once, the first time a server is seen not yet restarted: build.UBR (registry) and its running Automatic
-  services. A server first seen already restarted has no baseline; services then fall back to "Automatic, not running".
+  services, less any **marked for deletion** (`DeleteFlag` in the service's registry key, read with `StdRegProv` for the
+  candidates only: a role or application removal deleted the service while it still ran, and the Service Control Manager
+  drops it at the next boot). Those are reported after the restart as removed, apart from the stopped ones, so the before
+  and after counts reconcile ("3 of 24 that ran before the restart", "2 removed as planned"). A server first seen
+  already restarted has no baseline; services then fall back to "Automatic, not running".
 - **Verification passes** once it is BACK: on the first poll of each boot, then every 2 min until the boot settles (up 15
   min, TiWorker gone), then no more until the next boot or a "Check again". Each pass reads the System log since the
   cut-off — the first pass of a boot by time, later ones only records after the last seen (`RecordNumber`) — plus the

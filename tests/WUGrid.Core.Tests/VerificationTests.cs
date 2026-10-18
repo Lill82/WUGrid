@@ -136,6 +136,47 @@ namespace WUGrid.Core.Tests
             Assert.Equal(new[] { "AppDb" }, b.RunningAutoServices.Keys);
         }
 
+        [Fact]
+        public void Baseline_LeavesOutServicesMarkedForDeletion_AndRemembersThem()
+        {
+            var b = BuildBaseline(Boot, "17763.8644", new[]
+            {
+                new ServiceRecord("AppDb", "Application Database", "Running", "Auto"),
+                new ServiceRecord("WsusService", "WSUS Service", "Running", "Auto"),
+                new ServiceRecord("OldAgent", "Old Agent", "Stopped", "Auto"),
+            }, markedForDeletion: new[] { "WsusService", "OldAgent" });
+            Assert.Equal(new[] { "AppDb" }, b.RunningAutoServices.Keys);
+            Assert.Equal(new[] { "WsusService" }, b.MarkedForDeletion.Keys);   // OldAgent was not running: nothing to expect either way
+        }
+
+        [Fact]
+        public void ServiceMarkedForDeletion_NotBackAfterTheRestart_IsRemovedNotStopped()
+        {
+            var before = new Baseline(Boot.AddHours(-1), "17763.8644",
+                new Dictionary<string, string> { ["W32Time"] = "Windows Time" },
+                new Dictionary<string, string> { ["WsusService"] = "WSUS Service", ["Wid"] = "Windows Internal Database" });
+            var after = new[]
+            {
+                new ServiceRecord("W32Time", "Windows Time", "Running", "Auto"),
+                new ServiceRecord("Wid", "Windows Internal Database", "Stopped", "Auto"),   // registered until its last handle closes
+            };
+            var v = Build(new EventRecord[0], after, before);
+            Assert.Empty(v.StoppedServices);
+            Assert.Equal(new[] { "Wid", "WsusService" }, v.RemovedServices.Select(s => s.Name));
+            Assert.Equal("Stopped", v.RemovedServices[0].State);
+            Assert.Equal("Missing", v.RemovedServices[1].State);
+        }
+
+        [Fact]
+        public void ServiceMarkedForDeletion_RunningAgain_IsNeitherRemovedNorStopped()
+        {
+            var before = new Baseline(Boot.AddHours(-1), "17763.8644", new Dictionary<string, string>(),
+                                      new Dictionary<string, string> { ["WsusService"] = "WSUS Service" });
+            var v = Build(new EventRecord[0], new[] { new ServiceRecord("WsusService", "WSUS Service", "Running", "Auto") }, before);
+            Assert.Empty(v.StoppedServices);
+            Assert.Empty(v.RemovedServices);
+        }
+
         [Theory]
         [InlineData(20, false, true)]
         [InlineData(20, true, false)]

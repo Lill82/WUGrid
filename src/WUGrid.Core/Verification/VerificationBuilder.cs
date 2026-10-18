@@ -41,12 +41,23 @@ namespace WUGrid.Core.Verification
 
         public static bool IsTransientService(string name) => Transient.IsMatch(name ?? "");
 
-        /// <summary>The baseline: build plus the Automatic services running right now.</summary>
-        public static Baseline BuildBaseline(DateTime now, string build, IEnumerable<ServiceRecord> services) =>
-            new Baseline(now, build, services
-                .Where(s => s.StartMode == "Auto" && s.State == "Running" && !IsTransientService(s.Name))
-                .GroupBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(g => g.Key, g => g.First().DisplayName, StringComparer.OrdinalIgnoreCase));
+        /// <summary>The services a baseline expects to run again after the restart: Automatic, running, not transient.</summary>
+        public static IEnumerable<ServiceRecord> BaselineCandidates(IEnumerable<ServiceRecord> services) =>
+            services.Where(s => s.StartMode == "Auto" && s.State == "Running" && !IsTransientService(s.Name))
+                    .GroupBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
+                    .Select(g => g.First());
+
+        /// <summary>The baseline: build plus the Automatic services running right now, less those marked for deletion.</summary>
+        /// <param name="markedForDeletion">Names of services whose registry key carries DeleteFlag (they go at the next boot);
+        /// null when not read.</param>
+        public static Baseline BuildBaseline(DateTime now, string build, IEnumerable<ServiceRecord> services, IEnumerable<string> markedForDeletion = null)
+        {
+            var marked = new HashSet<string>(markedForDeletion ?? Enumerable.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+            var candidates = BaselineCandidates(services).ToList();
+            return new Baseline(now, build,
+                candidates.Where(s => !marked.Contains(s.Name)).ToDictionary(s => s.Name, s => s.DisplayName, StringComparer.OrdinalIgnoreCase),
+                candidates.Where(s => marked.Contains(s.Name)).ToDictionary(s => s.Name, s => s.DisplayName, StringComparer.OrdinalIgnoreCase));
+        }
 
         /// <param name="events">System log records since the cut-off (any order; others are ignored).</param>
         /// <param name="services">Current services, or null when not read this time.</param>
@@ -59,6 +70,7 @@ namespace WUGrid.Core.Verification
 
             var servicesChecked = services != null && up >= ServicesAfter;
             var stopped = servicesChecked ? StoppedServices(services, baseline, list) : new List<ServiceIssue>();
+            var removed = servicesChecked && baseline != null ? RemovedServices(services, baseline) : new List<ServiceRecord>();
 
             return new ServerVerification(
                 now, boot, build,
@@ -67,7 +79,8 @@ namespace WUGrid.Core.Verification
                 list.Where(e => e.Code == 12 && e.Source == KernelGeneral).Select(BootOf).ToList(),
                 list.Any(e => e.Code == 6008 && e.Source == EventLog),
                 stopped, servicesChecked, servicesChecked && baseline != null,
-                settled: up >= SettledAfter && !tiWorker);
+                settled: up >= SettledAfter && !tiWorker,
+                removedServices: removed);
         }
 
         /// <summary>Last result per update (a failure followed by a success is a success).</summary>
@@ -121,6 +134,18 @@ namespace WUGrid.Core.Verification
             return expected.Where(s => s.State != "Running" && !IsTransientService(s.Name))
                            .Select(s => new ServiceIssue(s, changes.LastOrDefault(e => string.Equals(e.At(3), s.Name, StringComparison.OrdinalIgnoreCase))))
                            .OrderBy(i => i.Service.Name, StringComparer.OrdinalIgnoreCase)
+                           .ToList();
+        }
+
+        /// <summary>Services the baseline found marked for deletion and that are not running now: gone, or still registered
+        /// until their last handle closes. One running again (reinstalled) is simply running and is not listed.</summary>
+        static List<ServiceRecord> RemovedServices(IReadOnlyList<ServiceRecord> services, Baseline baseline)
+        {
+            var now = services.ToDictionary(s => s.Name, StringComparer.OrdinalIgnoreCase);
+            return baseline.MarkedForDeletion
+                           .Select(kv => now.TryGetValue(kv.Key, out var s) ? s : new ServiceRecord(kv.Key, kv.Value, "Missing", ""))
+                           .Where(s => s.State != "Running")
+                           .OrderBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
                            .ToList();
         }
     }

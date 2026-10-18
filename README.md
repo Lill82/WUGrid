@@ -35,8 +35,10 @@ wugrid-cli error 0x800F0840                 explain an error code
 - **Verification**: once a server is back, WUGrid reads its System log (since the cut-off) and services and flags what a
   green restart can hide: an **update that failed** (Windows Update event 20, error code explained — e.g. stacked
   cumulative updates failing with `0x800F0840`) and a **service not running** that ran before the restart (with who
-  changed its start type). Double-click a row for the details: updates, who restarted it and why (event 1074), each boot
-  and the build it came up on, services. The Build column shows the build before → now.
+  changed its start type). A service marked for deletion before the restart (a role or application removal that could
+  not finish while it ran) is expected to go, and is reported as removed, not as stopped, so the counts reconcile.
+  Double-click a row for the details: updates, who restarted it and why (event 1074), each boot and the build it came up
+  on, services. The Build column shows the build before → now.
 - **`wugrid-cli watch`** is the same live round in a console, read-only: same probe, states, alarms and checks as the
   GUI. Servers come from the command line, from `--list FILE` (re-read whenever the file changes) or, with neither,
   from the GUI's saved list. The grid redraws every second; when the servers do not fit the window, clean BACK servers

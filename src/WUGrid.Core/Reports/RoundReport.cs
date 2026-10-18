@@ -16,7 +16,7 @@ namespace WUGrid.Core.Reports
         static readonly string[] Columns =
         {
             "Server", "State", "Note", "Last boot", "Boots in round", "Restarted by", "Build before", "Build now",
-            "Updates installed", "Updates failed", "Services not running", "Checked",
+            "Updates installed", "Updates failed", "Services not running", "Services removed", "Checked",
         };
 
         /// <param name="separator">Defaults to the culture's list separator, which is what Excel splits on.</param>
@@ -102,8 +102,14 @@ namespace WUGrid.Core.Reports
             if (v.StoppedServices.Count > 0)
             {
                 h.Append("<div style=\"margin-top:8px\"><b>Services not running</b> <span class=\"muted\">")
-                 .Append(v.ComparedToBaseline ? "(ran before the restart)" : "(Automatic, not running)").Append("</span><ul>");
+                 .Append(v.ComparedToBaseline ? E($"({NotRunningOf(v, r.Observation.Baseline)})") : "(Automatic, not running)").Append("</span><ul>");
                 foreach (var i in v.StoppedServices) h.Append("<li>").Append(E(ServiceLine(i))).Append("</li>");
+                h.Append("</ul></div>");
+            }
+            if (v.RemovedServices.Count > 0)
+            {
+                h.Append("<div class=\"muted\" style=\"margin-top:8px\"><b>Removed as planned</b> (marked for deletion before the restart)<ul>");
+                foreach (var s in v.RemovedServices) h.Append("<li>").Append(E(RemovedLine(s))).Append("</li>");
                 h.Append("</ul></div>");
             }
             if (v.UnexpectedShutdown) h.Append("<div class=\"bad\" style=\"margin-top:8px\">An unexpected shutdown was logged during the round (event 6008).</div>");
@@ -133,6 +139,14 @@ namespace WUGrid.Core.Reports
             return c == null ? line : $"{line}; start type changed {c.Time:dd-MM HH:mm} by {(c.User != "" ? c.User : "?")}: {c.At(1)} → {c.At(2)}";
         }
 
+        /// <summary>"3 of 24 that ran before the restart": the stopped count against the baseline's expected count.</summary>
+        public static string NotRunningOf(ServerVerification v, Baseline b) =>
+            b != null ? $"{v.StoppedServices.Count} of {b.RunningAutoServices.Count} that ran before the restart" : "ran before the restart";
+
+        /// <summary>A service the baseline found marked for deletion: gone now, or still registered until its last handle closes.</summary>
+        public static string RemovedLine(ServiceRecord s) =>
+            $"{s.DisplayName} ({s.Name}): " + (s.State == "Missing" ? "gone" : $"still registered, {s.State}");
+
         public static string RestartLine(RestartRecord x) =>
             $"{x.Time:dd-MM HH:mm} by {x.User} — {x.Process} — {x.ReasonCode} {x.Reason}" + (x.Comment != "" ? $" — \"{x.Comment}\"" : "");
 
@@ -150,6 +164,7 @@ namespace WUGrid.Core.Reports
             yield return v == null ? "" : string.Join(" ", v.Updates.Where(u => u.Succeeded).Select(u => u.Label));
             yield return v == null ? "" : string.Join(" ", v.Failed.Select(u => $"{u.Label}:{ErrorCatalog.Hex(u.ErrorCode)}"));
             yield return v == null ? "" : string.Join(", ", v.StoppedServices.Select(i => i.Service.Name));
+            yield return v == null ? "" : string.Join(", ", v.RemovedServices.Select(s => s.Name));
             yield return v?.CheckedAt.ToString("yyyy-MM-dd HH:mm") ?? "";
         }
 

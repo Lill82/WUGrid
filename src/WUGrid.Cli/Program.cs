@@ -118,6 +118,7 @@ namespace WUGrid.Cli
             if (v.UnexpectedShutdown) Console.WriteLine("  Unexpected shutdown logged (event 6008)");
             if (!v.ServicesChecked) Console.WriteLine("  Services    not checked yet: up less than 5 min");
             foreach (var i in v.StoppedServices) Console.WriteLine($"  Service     {RoundReport.ServiceLine(i)}");
+            foreach (var removed in v.RemovedServices) Console.WriteLine($"  Removed     {RoundReport.RemovedLine(removed)} (marked for deletion before the restart)");
         }
 
         static void Line(string label, CheckOutcome c)

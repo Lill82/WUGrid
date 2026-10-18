@@ -142,7 +142,10 @@ namespace WUGrid.Core.Probing
                 if (baseline == null)
                 {
                     build = VerificationReader.ReadBuild(registry, timeout);
-                    baseline = VerificationBuilder.BuildBaseline(now, build, VerificationReader.ReadServices(scope, timeout));
+                    var before = VerificationReader.ReadServices(scope, timeout);
+                    // A service a role or application removal deleted while it still ran goes at the next boot: not expected back
+                    var marked = VerificationReader.ReadMarkedForDeletion(registry, VerificationBuilder.BaselineCandidates(before), timeout);
+                    baseline = VerificationBuilder.BuildBaseline(now, build, before, marked);
                 }
                 return;
             }

@@ -14,6 +14,7 @@ namespace WUGrid.Core.Probing
     static class VerificationReader
     {
         const string CurrentVersion = @"SOFTWARE\Microsoft\Windows NT\CurrentVersion";
+        const string Services = @"SYSTEM\CurrentControlSet\Services";
 
         /// <summary>A time-filtered query walks the log back to the cut-off: seconds on a busy 200,000-record log.</summary>
         public static readonly TimeSpan EventTimeout = TimeSpan.FromSeconds(60);
@@ -30,6 +31,20 @@ namespace WUGrid.Core.Probing
             Wmi.Query(scope, "SELECT Name, DisplayName, State, StartMode FROM Win32_Service", timeout)
                .Select(mo => new ServiceRecord((string)mo["Name"], (string)mo["DisplayName"], (string)mo["State"], (string)mo["StartMode"]))
                .ToList();
+
+        /// <summary>Which of these services carry DeleteFlag in their registry key: a role or application removal deleted them
+        /// while something still held them open, so the Service Control Manager drops them at the next boot. One registry read
+        /// per service: call it for the baseline's candidates only, once.</summary>
+        public static HashSet<string> ReadMarkedForDeletion(ManagementClass registry, IEnumerable<ServiceRecord> candidates, TimeSpan timeout)
+        {
+            var marked = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var s in candidates)
+            {
+                var flag = Wmi.Value(registry, $@"{Services}\{s.Name}", "DeleteFlag", dword: true, timeout);
+                if (flag != null && Convert.ToUInt32(flag) != 0) marked.Add(s.Name);
+            }
+            return marked;
+        }
 
         /// <param name="afterRecord">0 for everything since <paramref name="since"/>; otherwise only records after this one.</param>
         public static List<EventRecord> ReadEvents(ManagementScope scope, DateTime since, long afterRecord)

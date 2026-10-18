@@ -33,6 +33,7 @@ namespace WUGrid.Core.Demo
         int updateError;
         bool hasUpdate = true;   // also: packages pending before the restart, so it shows RESTART PENDING
         (string Name, string Display, double Until)? serviceDown;
+        (string Name, string Display)? serviceRemoved;
 
         /// <param name="daysUp">Uptime before the round, for the last boot shown before the restart.</param>
         /// <param name="firstAnswer">Minute the first poll answers; "checking..." until then.</param>
@@ -75,6 +76,13 @@ namespace WUGrid.Core.Demo
         public DemoScript ServiceDown(string name, string display, double until)
         {
             serviceDown = (name, display, until);
+            return this;
+        }
+
+        /// <summary>An application removal deleted a running service before the round (marked for deletion): gone after the restart, as planned.</summary>
+        public DemoScript ServiceRemoved(string name, string display)
+        {
+            serviceRemoved = (name, display);
             return this;
         }
 
@@ -127,7 +135,9 @@ namespace WUGrid.Core.Demo
         {
             var services = new Dictionary<string, string> { ["W32Time"] = "Windows Time", ["Winmgmt"] = "Windows Management Instrumentation" };
             if (serviceDown.HasValue) services[serviceDown.Value.Name] = serviceDown.Value.Display;
-            return new Baseline(since.AddMinutes(-1), "17763.8644", services);
+            var marked = new Dictionary<string, string>();
+            if (serviceRemoved.HasValue) marked[serviceRemoved.Value.Name] = serviceRemoved.Value.Display;
+            return new Baseline(since.AddMinutes(-1), "17763.8644", services, marked);
         }
 
         // What a verification pass would have found at this minute: update result two minutes after the boot, every
@@ -157,8 +167,11 @@ namespace WUGrid.Core.Demo
                                              @"CONTOSO\appowner", s.Display, "auto start", "disabled", s.Name);
                 stopped.Add(new ServiceIssue(new ServiceRecord(s.Name, s.Display, "Stopped", "Disabled"), change));
             }
+            var removed = new List<ServiceRecord>();
+            if (checkedServices && serviceRemoved.HasValue)
+                removed.Add(new ServiceRecord(serviceRemoved.Value.Name, serviceRemoved.Value.Display, "Missing", ""));
             return new ServerVerification(since.AddMinutes(minute), boot, buildAfter, updates, restarts, boots, false, stopped,
-                                          checkedServices, true, up >= VerificationBuilder.SettledAfter.TotalMinutes && !p.TiWorker);
+                                          checkedServices, true, up >= VerificationBuilder.SettledAfter.TotalMinutes && !p.TiWorker, removed);
         }
     }
 }

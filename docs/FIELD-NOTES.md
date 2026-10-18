@@ -101,7 +101,11 @@ SRV-M, from the headless watch (polled every 5 s):
   - the 2-minute re-check works: a management agent's service flagged at the +5 min pass had started by the next one;
   - once a boot has settled (15 min) the flags stay until **Check again** in the details window;
   - one server came back with its antivirus service stopped (it ran before the restart) — nothing to do with WSUS, and
-    exactly what the baseline comparison exists for.
+    exactly what the baseline comparison exists for;
+  - a service that a role or application removal deleted while it still ran carries `DeleteFlag` in its registry key and
+    goes at the next boot: since 0.6.0 the baseline leaves such services out and reports them as removed after the
+    restart, so the before and after counts reconcile. Here the services were still registered as Automatic after the
+    restart, so the operator's knowledge was the only signal.
 - **Start the watch before sending restarts.** The headless watch here started two minutes after the first batch, found
   two servers already shutting down and had no baseline for them, so it fell back to "Automatic but not running". It
   flagged the same services this time, but that check also flags Automatic services that were already stopped before
