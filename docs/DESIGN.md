@@ -181,6 +181,5 @@ M2; one tool instead of two → M1; de-estate-ify → M0/M1.
 
 ## Open questions
 
-- Hosting: personal or organisation GitHub account. (Licence: MIT, decided 2026-10-18.)
 - Minimum target OS for actions: Server 2008 R2 has PowerShell 2.0 and no `PS_ScheduledTask`; 2012 R2+ is simpler.
 - Credentials: current user only (Kerberos), or also alternate credentials per run.

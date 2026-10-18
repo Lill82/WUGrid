@@ -60,8 +60,8 @@ the targeting pack. The legacy scripts are Windows PowerShell 5.1 — see the 5.
 
 ## Status
 
-- M0 done; MIT licence (`LICENSE`, Alex Lillo). Hosted at `github.com/Lill82/WUGrid`, **private** for now; CI on
-  GitHub Actions. The Pages workflow skips while the repo is private.
+- M0 done; MIT licence (`LICENSE`, Alex Lillo). Public at `github.com/Lill82/WUGrid` since 2026-10-18; CI on GitHub
+  Actions; the project page deploys from `site/` through GitHub Pages (`pages.yml`).
 - M1 built: live grid (WMI/DCOM probe, thread per server), Servers window with access check, asterisk footnote,
   error catalog, demo, polling interval, `wugrid-cli watch` (console grid, `--headless` events, live list reload,
   state JSON, events JSONL). All-clean waits for each server's checks (`ServerRow.ChecksDone`). Still open: the parity
