@@ -55,7 +55,7 @@ namespace WUGrid.Gui
             using (var reboot = new RestartForm(() => lastSnapshot, (r, o) => { }, preview: true))
             {
                 Open(reboot);
-                Find<Button>(reboot, b => b.Text == "Tick all with a restart pending")?.PerformClick();
+                Find<Button>(reboot, b => b.Text == L.T("Tick all with a restart pending"))?.PerformClick();
                 SaveWindow(reboot, Path.Combine(dir, "reboot.png"));
             }
 

@@ -29,8 +29,8 @@ namespace WUGrid.Gui
         readonly ListView list = new ListView();
         readonly ComboBox warning = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList };
         readonly TextBox comment = new TextBox();
-        readonly Button checkOnly = new Button { Text = "Check only", AutoSize = true };
-        readonly Button restart = new Button { Text = "Restart…", AutoSize = true };
+        readonly Button checkOnly = new Button { Text = L.T("Check only"), AutoSize = true };
+        readonly Button restart = new Button { Text = L.T("Restart…"), AutoSize = true };
         readonly System.Windows.Forms.Timer timer = new System.Windows.Forms.Timer { Interval = 2000 };
         readonly Dictionary<string, RestartEligibility> eligible = new Dictionary<string, RestartEligibility>(StringComparer.OrdinalIgnoreCase);
         readonly HashSet<string> requested = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -46,7 +46,7 @@ namespace WUGrid.Gui
             this.report = report;
             this.preview = preview;
             scale = DeviceDpi / 96f;
-            Text = "Reboot servers";
+            Text = L.T("Reboot servers");
             Icon = AppInfo.Icon;
             Font = new Font("Segoe UI", 9.75f);
             ClientSize = new Size(Px(980), Px(600));
@@ -58,7 +58,7 @@ namespace WUGrid.Gui
             var hint = new Label
             {
                 Dock = DockStyle.Top, Height = Px(44), Padding = new Padding(Px(12), Px(10), Px(12), 0), ForeColor = Palette.MutedText,
-                Text = "Tick the servers to restart. Greyed ones cannot be restarted now without cutting off update work; the reason is shown.",
+                Text = L.T("Tick the servers to restart. Greyed ones cannot be restarted now without cutting off update work; the reason is shown."),
             };
 
             list.Dock = DockStyle.Fill;
@@ -66,10 +66,10 @@ namespace WUGrid.Gui
             list.CheckBoxes = true;
             list.FullRowSelect = true;
             list.BorderStyle = BorderStyle.None;
-            list.Columns.Add("Server", Px(125));
-            list.Columns.Add("State", Px(155));
-            list.Columns.Add("Can restart now?", Px(420));
-            list.Columns.Add("Result", Px(240));
+            list.Columns.Add(L.T("Server"), Px(125));
+            list.Columns.Add(L.T("State"), Px(155));
+            list.Columns.Add(L.T("Can restart now?"), Px(420));
+            list.Columns.Add(L.T("Result"), Px(240));
             list.ItemCheck += (s, e) =>
             {
                 // Greyed servers cannot be ticked
@@ -108,20 +108,19 @@ namespace WUGrid.Gui
             panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            foreach (var w in Warnings) warning.Items.Add(w == 0 ? "none" : w < 120 ? $"{w} s" : $"{w / 60} min");
+            foreach (var w in Warnings) warning.Items.Add(w == 0 ? L.T("none") : w < 120 ? $"{w} s" : $"{w / 60} min");
             warning.SelectedIndex = Array.IndexOf(Warnings, 60);
             warning.Width = Px(80);
             comment.Dock = DockStyle.Fill;
-            panel.Controls.Add(new Label { Text = "Warning before restart", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 0);
+            panel.Controls.Add(new Label { Text = L.T("Warning before restart"), AutoSize = true, Anchor = AnchorStyles.Left }, 0, 0);
             panel.Controls.Add(warning, 1, 0);
-            panel.Controls.Add(new Label { Text = "Comment", AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(Px(16), 0, 0, 0) }, 2, 0);
+            panel.Controls.Add(new Label { Text = L.T("Comment"), AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(Px(16), 0, 0, 0) }, 2, 0);
             panel.Controls.Add(comment, 3, 0);
             var note = new Label
             {
                 AutoSize = true, ForeColor = Palette.MutedText, MaximumSize = new Size(Px(940), 0),
-                Text = "Not forced: running programs can delay or cancel the restart, and Windows refuses it while a user is signed in, even " +
-                       "disconnected. Until it runs it can be aborted on the server with shutdown /a. Each server is checked again just before: one " +
-                       $"that started update work or has a user signed in is skipped. Everything is recorded in {(preview ? @"%APPDATA%\WUGrid\audit.jsonl" : audit.Path)}.",
+                Text = L.F("Not forced: running programs can delay or cancel the restart, and Windows refuses it while a user is signed in, even disconnected. Until it runs it can be aborted on the server with shutdown /a. Each server is checked again just before: one that started update work or has a user signed in is skipped. Everything is recorded in {0}.",
+                           preview ? @"%APPDATA%\WUGrid\audit.jsonl" : audit.Path),
             };
             panel.Controls.Add(note, 0, 1);
             panel.SetColumnSpan(note, 4);
@@ -132,10 +131,10 @@ namespace WUGrid.Gui
         {
             var bar = new TableLayoutPanel { Dock = DockStyle.Bottom, Height = Px(52), Padding = new Padding(Px(8), Px(8), Px(8), Px(6)), ColumnCount = 7 };
             for (var i = 0; i < 7; i++) bar.ColumnStyles.Add(new ColumnStyle(i == 3 ? SizeType.Percent : SizeType.AutoSize, 100));
-            var withPending = new Button { Text = "Tick all with a restart pending", AutoSize = true };
-            var all = new Button { Text = "Tick all possible", AutoSize = true };
-            var none = new Button { Text = "Clear", AutoSize = true };
-            var close = new Button { Text = "Close", DialogResult = DialogResult.Cancel, AutoSize = true, MinimumSize = new Size(Px(80), 0) };
+            var withPending = new Button { Text = L.T("Tick all with a restart pending"), AutoSize = true };
+            var all = new Button { Text = L.T("Tick all possible"), AutoSize = true };
+            var none = new Button { Text = L.T("Clear"), AutoSize = true };
+            var close = new Button { Text = L.T("Close"), DialogResult = DialogResult.Cancel, AutoSize = true, MinimumSize = new Size(Px(80), 0) };
             withPending.Click += (s, e) => Tick(name => pending.Contains(name));
             all.Click += (s, e) => Tick(name => true);
             none.Click += (s, e) => { foreach (ListViewItem i in list.Items) i.Checked = false; };
@@ -166,14 +165,14 @@ namespace WUGrid.Gui
                 eligible[row.Name] = el;
                 item.SubItems[1].Text = row.Status.Label;
                 if (RestartGuard.IsPending(row.Status)) pending.Add(row.Name); else pending.Remove(row.Name);
-                item.SubItems[2].Text = el.Allowed ? (el.Reason == "" ? "yes" : "yes — " + el.Reason) : "no — " + el.Reason;
+                item.SubItems[2].Text = el.Allowed ? (el.Reason == "" ? L.T("yes") : L.F("yes — {0}", el.Reason)) : L.F("no — {0}", el.Reason);
                 var colour = el.Allowed ? Palette.Text : Palette.MutedText;
                 item.ForeColor = item.SubItems[1].ForeColor = colour;
                 item.SubItems[2].ForeColor = el.Allowed ? Palette.CleanText : Palette.MutedText;
                 if (!el.Allowed && item.Checked)
                 {
                     item.Checked = false;
-                    item.SubItems[3].Text = "unticked: " + el.Reason;
+                    item.SubItems[3].Text = L.F("unticked: {0}", el.Reason);
                 }
             }
             foreach (var gone in list.Items.Cast<ListViewItem>().Where(i => snap.Rows.All(r => !string.Equals(r.Name, i.Text, StringComparison.OrdinalIgnoreCase))).ToList())
@@ -185,7 +184,7 @@ namespace WUGrid.Gui
         void UpdateButtons()
         {
             var n = list.CheckedItems.Count;
-            restart.Text = n == 1 ? "Restart 1 server…" : $"Restart {n} servers…";
+            restart.Text = n == 1 ? L.T("Restart 1 server…") : L.F("Restart {0} servers…", n);
             restart.Enabled = checkOnly.Enabled = n > 0 && running == 0;
         }
 
@@ -196,14 +195,15 @@ namespace WUGrid.Gui
             var options = new RestartOptions { WarningSeconds = Warnings[warning.SelectedIndex], Comment = comment.Text, CheckOnly = checkOnlyRun };
             if (!checkOnlyRun)
             {
-                var text = $"Restart {(names.Count == 1 ? "this server" : $"these {names.Count} servers")} now?\n\n{string.Join(", ", names)}\n\n" +
-                           $"Not forced; {(options.WarningSeconds > 0 ? $"{options.WarningSeconds} s warning" : "no warning")}. " +
-                           "Each server is checked again just before; one that started update work or has a user signed in is skipped.";
-                if (MessageBox.Show(this, text, "Reboot servers", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) != DialogResult.Yes)
+                var text = (names.Count == 1 ? L.T("Restart this server now?") : L.F("Restart these {0} servers now?", names.Count)) +
+                           $"\n\n{string.Join(", ", names)}\n\n" +
+                           (options.WarningSeconds > 0 ? L.F("Not forced; {0} s warning.", options.WarningSeconds) : L.T("Not forced; no warning.")) + " " +
+                           L.T("Each server is checked again just before; one that started update work or has a user signed in is skipped.");
+                if (MessageBox.Show(this, text, L.T("Reboot servers"), MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) != DialogResult.Yes)
                     return;
             }
             var since = snapshot()?.Since ?? DateTime.Today;
-            foreach (var name in names) Result(name, checkOnlyRun ? "checking…" : "sending…", Palette.MutedText);
+            foreach (var name in names) Result(name, checkOnlyRun ? L.T("checking…") : L.T("sending…"), Palette.MutedText);
             running += names.Count;
             UpdateButtons();
             foreach (var name in names)
@@ -231,13 +231,13 @@ namespace WUGrid.Gui
             {
                 case RestartOutcome.Requested:
                     requested.Add(r.Server);
-                    Result(r.Server, $"requested {DateTime.Now:HH:mm:ss}: {r.Detail}", Palette.CleanText);
+                    Result(r.Server, L.F("requested {0:HH:mm:ss}: {1}", DateTime.Now, r.Detail), Palette.CleanText);
                     var item = list.Items[r.Server];
                     if (item != null) item.Checked = false;   // not twice
                     break;
-                case RestartOutcome.WouldRestart: Result(r.Server, "would restart: " + r.Detail, Palette.CleanText); break;
-                case RestartOutcome.Skipped: Result(r.Server, "skipped: " + r.Detail, Palette.AlarmText); break;
-                default: Result(r.Server, $"failed: {r.Detail}" + (r.Code != 0 ? $" ({ErrorCatalog.Summary(r.Code)})" : ""), Palette.AlarmText); break;
+                case RestartOutcome.WouldRestart: Result(r.Server, L.F("would restart: {0}", r.Detail), Palette.CleanText); break;
+                case RestartOutcome.Skipped: Result(r.Server, L.F("skipped: {0}", r.Detail), Palette.AlarmText); break;
+                default: Result(r.Server, L.F("failed: {0}", r.Detail) + (r.Code != 0 ? $" ({ErrorCatalog.Summary(r.Code)})" : ""), Palette.AlarmText); break;
             }
             report(r, options);
             UpdateButtons();

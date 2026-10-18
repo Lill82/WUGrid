@@ -1,0 +1,192 @@
+# WUGrid windows in Spanish: English text <TAB> translation, one per line (L.cs; TranslationsTests keeps it complete).
+# What Core writes (states, notes, events, restart reasons, the error catalog) stays English and is not here.
+
+# Main window
+ — demo round	 — ronda de demostración
+Pause	Pausa
+Resume	Continuar
+Restart demo	Reiniciar la demo
+Speed	Velocidad
+Servers…	Servidores…
+Add or remove servers; each one added is checked once (read-only)	Añadir o quitar servidores; cada uno que se añade se comprueba una vez (solo lectura)
+Reboot…	Reiniciar…
+Pick servers to restart (never forced, only when no update work is running)	Elegir servidores para reiniciar (nunca forzado, solo cuando no hay trabajo de actualización en curso)
+How often each server is pinged and read over WMI	Cada cuánto se hace ping a cada servidor y se lee por WMI
+Restarted after	Reiniciado después de
+Round cut-off: a server counts as restarted when it booted after this	Corte de la ronda: un servidor cuenta como reiniciado si arrancó después de esta hora
+Poll every	Consultar cada
+Expected…	Previstos…
+Services you expect not to run after the restart (a role being removed): shown with the reason, not flagged. Nothing is sent.	Servicios que prevés que no se ejecuten tras el reinicio (un rol que se está quitando): se muestran con el motivo, sin aviso. No se envía nada.
+Error codes…	Códigos de error…
+Explain a CBS, Windows Update, WMI or Win32 error code	Explicar un código de error de CBS, Windows Update, WMI o Win32
+Report…	Informe…
+Save the round as an HTML page (opened after saving) or a CSV file	Guardar la ronda como página HTML (se abre al guardarla) o como archivo CSV
+Round time runs faster than real time	El tiempo de la ronda pasa más rápido que el real
+Read-only, except restarts you send with Reboot…	Solo lectura, salvo los reinicios que envíes con Reiniciar…
+Logging	Registro
+Open the log folder	Abrir la carpeta del registro
+Activity log off: tick to keep what WUGrid does and every error, to look at afterwards	Registro de actividad desactivado: márcalo para guardar lo que hace WUGrid y cada error, para consultarlo después
+Activity log on: {0}\nChanges and errors only, not every poll; kept {1} days	Registro de actividad activado: {0}\nSolo cambios y errores, no cada consulta; se guarda {1} días
+Right-click to open the log folder	Clic derecho para abrir la carpeta del registro
+The log is on for this run, but the choice could not be saved to {0}:\n{1}	El registro está activado en esta ejecución, pero la elección no se ha podido guardar en {0}:\n{1}
+The log is off for this run, but the choice could not be saved to {0}:\n{1}	El registro está desactivado en esta ejecución, pero la elección no se ha podido guardar en {0}:\n{1}
+Could not open {0}:\n{1}	No se ha podido abrir {0}:\n{1}
+Language of the windows	Idioma de las ventanas
+WUGrid will be in this language the next time it starts.	WUGrid estará en este idioma la próxima vez que se inicie.
+The language could not be saved to {0}:\n{1}	El idioma no se ha podido guardar en {0}:\n{1}
+Could not save the server list to {0}:\n{1}	No se ha podido guardar la lista de servidores en {0}:\n{1}
+Reboot {0}…	Reiniciar {0}…
+Reboot {0}: no — {1}	Reiniciar {0}: no — {1}
+Details…	Detalles…
+Could not save the expected stops to {0}:\n{1}	No se han podido guardar las paradas previstas en {0}:\n{1}
+Save round report	Guardar el informe de la ronda
+HTML page (*.html)|*.html|CSV for Excel (*.csv)|*.csv	Página HTML (*.html)|*.html|CSV para Excel (*.csv)|*.csv
+Could not save the report:\n{0}	No se ha podido guardar el informe:\n{0}
+Server	Servidor
+Ping	Ping
+State	Estado
+Last boot	Último arranque
+Up / Down	Tiempo
+Build	Compilación
+Note	Nota
+Time	Hora
+Event	Evento
+Demo round: simulated, no servers are contacted.	Ronda de demostración: simulada, no se contacta con ningún servidor.
+No servers yet: click Servers… to add some.	Aún no hay servidores: haz clic en Servidores… para añadir algunos.
+{0} servers, polled every {1:0} s over ICMP and DCOM/WMI. Double-click a row for its update results, restarts and services.	{0} servidores, consultados cada {1:0} s por ICMP y DCOM/WMI. Doble clic en una fila para ver sus actualizaciones, reinicios y servicios.
+up	sí
+yes	sí
+What to do: {0}	Qué hacer: {0}
+Restarted after the cut-off, nothing pending, checks clean	Reiniciado después del corte, nada pendiente, comprobaciones correctas
+Restarted, but a restart is pending again, an update failed or a service is not running	Reiniciado, pero vuelve a haber un reinicio pendiente, ha fallado una actualización o un servicio no se ejecuta
+Answers ping, WMI not ready yet	Responde al ping, WMI aún no está listo
+No ping	Sin ping
+Not restarted yet, TiWorker running: updates being installed, a restart may be under way	Aún sin reiniciar, TiWorker en marcha: se están instalando actualizaciones, puede haber un reinicio en curso
+Not restarted yet, a restart is pending (CBS packages or Windows Update)	Aún sin reiniciar, hay un reinicio pendiente (paquetes CBS o Windows Update)
+Not restarted yet, no restart pending (it can still be restarted)	Aún sin reiniciar, sin reinicio pendiente (se puede reiniciar igualmente)
+No answer yet	Aún sin respuesta
+{0:HH:mm:ss}    since {1:dd-MM HH:mm}    {2} servers	{0:HH:mm:ss}    desde {1:dd-MM HH:mm}    {2} servidores
+
+# Program
+--since: not a date/time: {0}	--since: no es una fecha/hora: {0}
+--screenshots works with --demo only: it never shows real servers.	--screenshots solo funciona con --demo: nunca muestra servidores reales.
+Something went wrong in WUGrid:\n{0}	Algo ha ido mal en WUGrid:\n{0}
+The details are in the activity log:\n{0}	Los detalles están en el registro de actividad:\n{0}
+Turn on the activity log (status bar) to keep the details if it happens again.	Activa el registro de actividad (barra de estado) para guardar los detalles si vuelve a pasar.
+
+# Reboot window
+Reboot servers	Reiniciar servidores
+Tick the servers to restart. Greyed ones cannot be restarted now without cutting off update work; the reason is shown.	Marca los servidores que quieres reiniciar. Los atenuados no se pueden reiniciar ahora sin cortar trabajo de actualización; se muestra el motivo.
+Can restart now?	¿Se puede reiniciar ahora?
+Result	Resultado
+none	ninguno
+Warning before restart	Aviso antes del reinicio
+Comment	Comentario
+Not forced: running programs can delay or cancel the restart, and Windows refuses it while a user is signed in, even disconnected. Until it runs it can be aborted on the server with shutdown /a. Each server is checked again just before: one that started update work or has a user signed in is skipped. Everything is recorded in {0}.	Sin forzar: los programas en marcha pueden retrasar o cancelar el reinicio, y Windows lo rechaza mientras haya un usuario con la sesión iniciada, aunque esté desconectada. Hasta que se ejecuta se puede anular en el servidor con shutdown /a. Cada servidor se vuelve a comprobar justo antes: se omite el que haya empezado trabajo de actualización o tenga un usuario con la sesión iniciada. Todo queda registrado en {0}.
+Tick all with a restart pending	Marcar todos los que tienen un reinicio pendiente
+Tick all possible	Marcar todos los posibles
+Clear	Desmarcar todo
+Close	Cerrar
+yes — {0}	sí — {0}
+no — {0}	no — {0}
+unticked: {0}	desmarcado: {0}
+Restart 1 server…	Reiniciar 1 servidor…
+Restart {0} servers…	Reiniciar {0} servidores…
+Restart this server now?	¿Reiniciar este servidor ahora?
+Restart these {0} servers now?	¿Reiniciar estos {0} servidores ahora?
+Not forced; {0} s warning.	Sin forzar; aviso de {0} s.
+Not forced; no warning.	Sin forzar; sin aviso.
+Each server is checked again just before; one that started update work or has a user signed in is skipped.	Cada servidor se vuelve a comprobar justo antes; se omite el que haya empezado trabajo de actualización o tenga un usuario con la sesión iniciada.
+Check only	Solo comprobar
+Restart…	Reiniciar…
+checking…	comprobando…
+sending…	enviando…
+requested {0:HH:mm:ss}: {1}	solicitado {0:HH:mm:ss}: {1}
+would restart: {0}	se reiniciaría: {0}
+skipped: {0}	omitido: {0}
+failed: {0}	ha fallado: {0}
+
+# Servers window
+Servers	Servidores
+Add servers: names separated by commas, spaces or lines (paste a list here). Each one is checked once, read-only.	Añadir servidores: nombres separados por comas, espacios o líneas (pega aquí una lista). Cada uno se comprueba una vez, en solo lectura.
+Add	Añadir
+Import…	Importar…
+Remove	Quitar
+Check again	Volver a comprobar
+OK	Aceptar
+Cancel	Cancelar
+Text files (*.txt)|*.txt|All files (*.*)|*.*	Archivos de texto (*.txt)|*.txt|Todos los archivos (*.*)|*.*
+Import server list	Importar lista de servidores
+checked {0:HH:mm:ss}	comprobado {0:HH:mm:ss}
+Ping is blocked but WMI answers: the grid uses ping for up/down, so this server will show as DOWN.	El ping está bloqueado pero WMI responde: la cuadrícula usa el ping para saber si está activo, así que este servidor se verá como DOWN.
+ok	correcto
+failed	ha fallado
+skipped	omitido
+{0} servers	{0} servidores
+{0} checking	{0} comprobando
+{0} with problems	{0} con problemas
+
+# Expected stops window
+Expected service stops	Paradas de servicio previstas
+Services not running right now. Tick the ones you expect to stay stopped (a role being removed, an application retired), say why and mark them: the server is no longer flagged for them and the stop stays visible with your reason. Nothing is sent to any server.	Servicios que no se están ejecutando ahora. Marca los que prevés que sigan parados (un rol que se está quitando, una aplicación retirada), di por qué y márcalos como previstos: el servidor deja de tener aviso por ellos y la parada sigue visible con tu motivo. No se envía nada a ningún servidor.
+Service	Servicio
+Display name	Nombre para mostrar
+Expected?	¿Prevista?
+no service is stopped in the round right now	ahora no hay ningún servicio parado en la ronda
+On every server	En todos los servidores
+Why	Motivo
+Mark ticked as expected	Marcar los seleccionados como previstos
+Expected stops in force (select and Remove, or Delete, to take one back)	Paradas previstas vigentes (selecciona y Quitar, o Supr, para retirar una)
+1 expected stop	1 parada prevista
+{0} expected stops	{0} paradas previstas
+
+# Error codes window
+Error codes	Códigos de error
+Code (0x800F0840, 800F0840, -2146498496) or words. {0} CBS, Windows Update, WMI and Win32 codes.	Código (0x800F0840, 800F0840, -2146498496) o palabras (las descripciones están en inglés). {0} códigos de CBS, Windows Update, WMI y Win32.
+Code	Código
+Name	Nombre
+Family	Familia
+Description	Descripción
+No match.	Sin coincidencias.
+(no name)	(sin nombre)
+Source: {0}	Fuente: {0}
+
+# Server details window
+Earlier boots	Arranques anteriores
+This server is no longer in the list.	Este servidor ya no está en la lista.
+clean	correcto
+flagged	con avisos
+Last boot {0:dd-MM-yyyy HH:mm}	Último arranque {0:dd-MM-yyyy HH:mm}
+down {0}	caído {0}
+up {0}	activo {0}
+Build {0}	Compilación {0}
+(before → now)	(antes → ahora)
+Why WMI does not answer	Por qué WMI no responde
+Checking update results, restarts and services…	Comprobando actualizaciones, reinicios y servicios…
+Updates since the cut-off ({0})	Actualizaciones desde el corte ({0})
+No Windows Update installs logged.	No hay instalaciones de Windows Update registradas.
+Restarts ({0}) and boots ({1})	Reinicios ({0}) y arranques ({1})
+Booted {0}	Arrancó {0}
+An unexpected shutdown was logged (event 6008).	Se registró un apagado inesperado (evento 6008).
+Services	Servicios
+Checked once the server has been up {0} min (delayed-start services).	Se comprueba cuando el servidor lleva {0} min activo (servicios de inicio retrasado).
+Every service that ran before the restart is running ({0} of {1}).	Todos los servicios que se ejecutaban antes del reinicio se están ejecutando ({0} de {1}).
+Every other service that ran before the restart is running ({0} of {1}).	Todos los demás servicios que se ejecutaban antes del reinicio se están ejecutando ({0} de {1}).
+Every Automatic service is running.	Todos los servicios automáticos se están ejecutando.
+Every other Automatic service is running.	Todos los demás servicios automáticos se están ejecutando.
+Ran before the restart, not running now ({0} of {1}):	Se ejecutaban antes del reinicio y ahora no ({0} de {1}):
+Automatic, not running (no baseline from before the restart):	Automáticos que no se ejecutan (no hay línea base de antes del reinicio):
+Not running, expected ({0}): shown, not flagged.	No se ejecutan, previstos ({0}): se muestran, sin aviso.
+Marked for deletion before the restart, removed as planned ({0}):	Marcados para eliminar antes del reinicio, eliminados como estaba previsto ({0}):
+Checked {0:HH:mm:ss}	Comprobado {0:HH:mm:ss}
+settled, no more checks for this boot	estable, no hay más comprobaciones para este arranque
+checked again every 2 min until it settles	se vuelve a comprobar cada 2 min hasta que se estabilice
+Before the restart	Antes del reinicio
+Baseline taken {0:HH:mm}: build {1}, {2} running Automatic services to compare after the restart.	Línea base tomada a las {0:HH:mm}: compilación {1}, {2} servicios automáticos en ejecución para comparar tras el reinicio.
+Baseline not taken yet.	Aún no se ha tomado la línea base.
+Marked for deletion, gone at the next boot and not expected back ({0}): {1}	Marcados para eliminar, desaparecen en el próximo arranque y no se espera que vuelvan ({0}): {1}
+Last check failed: {0}	La última comprobación ha fallado: {0}
+Earlier boots reads the System log back {0} days for whether these services failed at those boots too: minutes on a large log, in the background.	Arranques anteriores lee el registro System de los últimos {0} días para ver si estos servicios también fallaron en esos arranques: minutos en un registro grande, en segundo plano.
+Reading earlier boots: the System log back to {0:dd-MM-yyyy}, minutes on a large log…	Leyendo arranques anteriores: el registro System hasta el {0:dd-MM-yyyy}, minutos en un registro grande…
+Reading earlier boots failed at {0:HH:mm}: {1}	La lectura de arranques anteriores falló a las {0:HH:mm}: {1}
+Earlier boots read at {0:HH:mm}: the System log back to {1:dd-MM-yyyy}.	Arranques anteriores leídos a las {0:HH:mm}: el registro System hasta el {1:dd-MM-yyyy}.

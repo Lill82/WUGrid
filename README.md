@@ -94,6 +94,9 @@ wugrid-cli error 0x800F0840                 explain an error code
   kept 30 days: servers added and removed, ping and WMI coming and going, baselines and verification passes, every round
   event and restart result, and every error with its code and stack trace — changes only, never a line per poll. An
   unexpected error in the window is shown and logged instead of ending the program. It stays on your workstation.
+- **Language**: the windows come in Catalan (the default), Spanish and English. Pick one in the status bar (used from the
+  next start) or pass `--lang ca|es|en` for one run. State names (`BACK`, `RESTART PENDING`…), notes, the event pane, the
+  restart reasons and the error catalog stay in English: they also go to the CLI, the reports and the logs.
 
 Requirements: Windows with .NET Framework 4.8 on the admin workstation; ICMP, DCOM/RPC (and SMB for the admin$ check) to
 the servers; an account that is an administrator on them (restarting also needs the remote shutdown right, which
@@ -124,8 +127,8 @@ dotnet test WUGrid.sln
 | `tools/update_error_catalog.py` | Regenerates the Microsoft part of the error catalog. |
 | `tools/New-AppIcon.ps1` | Draws the app icon (`assets/WUGrid.ico`). |
 | `tools/Publish-Build.ps1` | Tests, then builds both exes into `builds\<version>\` (version from `Directory.Build.props`). |
-| `site/` | The project page (GitHub Pages, `.github/workflows/pages.yml`). |
-| `tools/New-Screenshots.ps1` | Regenerates the page's pictures from the demo round (`WUGrid.exe --demo --screenshots`, Edge headless, a console window). |
+| `site/` | The project page (GitHub Pages, `.github/workflows/pages.yml`): Catalan at the root, `es/`, `en/`. |
+| `tools/New-Screenshots.ps1` | Regenerates the page's pictures from the demo round (`WUGrid.exe --demo --screenshots`, once per language; Edge headless; a console window). |
 
 ## Licence
 

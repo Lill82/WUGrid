@@ -1,166 +1,16 @@
 <!doctype html>
-<html lang="en">
+<html lang="ca">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>WUGrid — Windows Update rounds for servers</title>
-<meta name="description" content="WUGrid watches, restarts and verifies a Windows Server patch round, live and agentless over WMI/DCOM. Built on a real 54-server round.">
+<title>WUGrid — rondes de Windows Update per a servidors</title>
+<meta name="description" content="WUGrid segueix, reinicia i verifica una ronda d'actualitzacions de Windows Server, en directe i sense agents, per WMI/DCOM. Nascut d'una ronda real de 54 servidors.">
 <link rel="icon" type="image/png" href="img/icon.png">
-<style>
-:root {
-  --bg: #ffffff;
-  --bg-soft: #f6f7f9;
-  --bg-card: #ffffff;
-  --text: #1f2937;
-  --muted: #6b7280;
-  --line: #e5e7eb;
-  --accent: #1d4ed8;
-  --accent-soft: #eff6ff;
-  --code-bg: #0f172a;
-  --code-text: #e2e8f0;
-  --shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 12px 32px rgba(15, 23, 42, .12);
-  --back: #16a34a; --flagged: #ea580c; --booting: #ca8a04; --down: #dc2626;
-  --installing: #0891b2; --pending: #7c3aed; --notpending: #64748b; --checking: #9ca3af;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0b1120;
-    --bg-soft: #111827;
-    --bg-card: #161f32;
-    --text: #e5e7eb;
-    --muted: #9ca3af;
-    --line: #273248;
-    --accent: #7aa2ff;
-    --accent-soft: #172341;
-    --code-bg: #060a14;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 16px 40px rgba(0, 0, 0, .45);
-  }
-}
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font: 16px/1.6 "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
-a { color: var(--accent); text-decoration: none; }
-a:hover { text-decoration: underline; }
-img { max-width: 100%; height: auto; display: block; }
-code, pre { font-family: "Cascadia Mono", Consolas, "SFMono-Regular", Menlo, monospace; font-size: .9em; }
-:not(pre) > code { background: var(--bg-soft); border: 1px solid var(--line); border-radius: 4px; padding: 0 .3em; }
-.wrap { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
-
-/* Header */
-.top { position: sticky; top: 0; z-index: 10; background: var(--bg); background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
-.top .wrap { display: flex; align-items: center; gap: 24px; height: 60px; }
-.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; color: var(--text); }
-.brand img { width: 28px; height: 28px; }
-.brand:hover { text-decoration: none; }
-.top nav { display: flex; gap: 20px; margin-left: auto; font-size: 15px; }
-.top nav a { color: var(--muted); }
-.top nav a:hover { color: var(--text); text-decoration: none; }
-
-/* Hero */
-.hero { padding: 72px 0 40px; text-align: center; }
-.badge { display: inline-flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; margin-bottom: 20px; }
-.badge b { color: var(--flagged); font-weight: 600; }
-.hero h1 { font-size: clamp(34px, 5vw, 54px); line-height: 1.12; margin: 0 auto 18px; max-width: 900px; letter-spacing: -.02em; }
-.hero p.lead { font-size: clamp(17px, 2vw, 20px); color: var(--muted); max-width: 780px; margin: 0 auto 30px; }
-.buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-.btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border-radius: 8px; font-weight: 600; border: 1px solid var(--line); color: var(--text); background: var(--bg-card); }
-.btn:hover { text-decoration: none; border-color: var(--muted); }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-@media (prefers-color-scheme: dark) { .btn.primary { color: #0b1120; } }
-.btn.primary:hover { filter: brightness(1.08); }
-.hero .shot { margin: 56px auto 0; max-width: 1182px; }
-
-/* Screenshots */
-.shot { border-radius: 10px; overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--line); background: #fff; }
-.shot a { display: block; }
-figure { margin: 0; }
-figure.shot figcaption { background: var(--bg-card); margin: 0; padding: 8px 12px; border-top: 1px solid var(--line); }
-figcaption, .caption { font-size: 14px; color: var(--muted); margin-top: 12px; text-align: center; }
-
-/* Pillars */
-.pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 40px 0 24px; }
-.pillar { background: var(--bg-soft); border: 1px solid var(--line); border-radius: 12px; padding: 22px 22px 18px; }
-.pillar h3 { margin: 0 0 6px; font-size: 18px; }
-.pillar p { margin: 0; color: var(--muted); font-size: 15px; }
-.pillar .icon { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; margin-bottom: 12px; color: #fff; font-weight: 700; }
-
-/* Feature rows */
-section.feature { padding: 64px 0; border-top: 1px solid var(--line); }
-section.feature:nth-of-type(even) { background: var(--bg-soft); }
-.row { display: grid; grid-template-columns: 5fr 7fr; gap: 48px; align-items: center; }
-.row.flip { grid-template-columns: 7fr 5fr; }
-.row.flip .text { order: 2; }
-.row > *, .cli-grid > *, .cards > * { min-width: 0; }   /* wide code blocks scroll instead of widening the column */
-.eyebrow { text-transform: uppercase; letter-spacing: .08em; font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
-.text h2 { font-size: clamp(26px, 3vw, 34px); line-height: 1.2; margin: 0 0 14px; letter-spacing: -.01em; }
-.text p { margin: 0 0 14px; }
-.text ul { margin: 0 0 14px; padding-left: 20px; }
-.text li { margin-bottom: 6px; }
-.note { font-size: 14px; color: var(--muted); border-left: 3px solid var(--line); padding-left: 12px; }
-
-/* States */
-.states { display: grid; grid-template-columns: max-content 1fr; gap: 8px 14px; align-items: baseline; margin: 6px 0 0; font-size: 15px; }
-.chip { display: inline-block; min-width: 150px; text-align: center; color: #fff; font-weight: 700; font-size: 12px; letter-spacing: .02em; padding: 3px 10px; border-radius: 4px; }
-.c-back { background: var(--back); } .c-flagged { background: var(--flagged); } .c-booting { background: var(--booting); }
-.c-down { background: var(--down); } .c-installing { background: var(--installing); } .c-pending { background: var(--pending); }
-.c-notpending { background: var(--notpending); } .c-checking { background: var(--checking); }
-
-/* Console */
-pre.term { background: var(--code-bg); color: var(--code-text); border-radius: 10px; padding: 16px 18px; overflow-x: auto; line-height: 1.5; margin: 0 0 16px; border: 1px solid var(--line); }
-pre.term .p { color: #7dd3fc; user-select: none; }
-pre.term .c { color: #94a3b8; }
-pre.term .alarm { color: #f87171; }
-pre.term .flag { color: #fb923c; }
-.cli-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 40px; }
-.cli-grid h3 { margin: 0 0 10px; font-size: 18px; }
-.cli-grid p { margin: 0 0 12px; color: var(--muted); font-size: 15px; }
-
-/* Start + roadmap */
-.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 28px; }
-.card { background: var(--bg-card); border: 1px solid var(--line); border-radius: 12px; padding: 22px; }
-.card h3 { margin: 0 0 10px; font-size: 18px; }
-.card p, .card li { font-size: 15px; }
-.card ul { padding-left: 18px; margin: 0; }
-.card pre.term { font-size: 13px; margin: 8px 0 0; }
-.center { text-align: center; }
-.center h2 { font-size: clamp(26px, 3vw, 34px); margin: 0 0 10px; }
-.center p.sub { color: var(--muted); max-width: 720px; margin: 0 auto; }
-.roadmap { list-style: none; padding: 0; margin: 28px auto 0; max-width: 860px; }
-.roadmap li { display: grid; grid-template-columns: 70px 120px 1fr; gap: 16px; align-items: baseline; padding: 14px 0; border-bottom: 1px solid var(--line); }
-.roadmap .m { font-weight: 700; }
-.roadmap .s { font-size: 12px; font-weight: 700; text-align: center; border-radius: 4px; padding: 2px 8px; color: #fff; }
-.s.done { background: var(--back); } .s.built { background: #15803d; } .s.cut { background: var(--installing); } .s.next { background: var(--pending); } .s.plan { background: var(--notpending); }
-.roadmap .d { color: var(--muted); font-size: 15px; }
-.author-links { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 24px 0 0; }
-.roadmap .d b { color: var(--text); font-weight: 600; }
-
-footer { border-top: 1px solid var(--line); padding: 32px 0 48px; color: var(--muted); font-size: 14px; }
-footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
-
-@media (max-width: 900px) {
-  .row, .row.flip { grid-template-columns: 1fr; gap: 28px; }
-  .row.flip .text { order: 0; }
-  .pillars, .cards, .cli-grid { grid-template-columns: 1fr; }
-  .top nav { display: none; }
-  .hero { padding-top: 48px; }
-  .roadmap li { grid-template-columns: 50px 1fr; }
-  .roadmap .s { justify-self: start; }
-  .roadmap .d { grid-column: 1 / -1; }
-}
-@media (max-width: 520px) {
-  .wrap { padding: 0 16px; }
-  pre.term { font-size: 12.5px; padding: 12px 14px; }
-  .states { grid-template-columns: 1fr; gap: 2px 0; }
-  .states dd { margin: 0 0 10px; }
-}
-.states dt, .states dd { margin: 0; }
-</style>
+<link rel="stylesheet" href="style.css">
+<link rel="alternate" hreflang="ca" href="./">
+<link rel="alternate" hreflang="es" href="es/">
+<link rel="alternate" hreflang="en" href="en/">
+<link rel="alternate" hreflang="x-default" href="./">
 </head>
 <body>
 
@@ -168,34 +18,39 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
   <div class="wrap">
     <a class="brand" href="#"><img src="img/icon.png" alt="" width="28" height="28">WUGrid</a>
     <nav>
-      <a href="#watch">Watch</a>
-      <a href="#verify">Verify</a>
-      <a href="#restart">Restart</a>
-      <a href="#console">Console</a>
-      <a href="#start">Get started</a>
+      <a href="#watch">Seguiment</a>
+      <a href="#verify">Verificació</a>
+      <a href="#restart">Reinici</a>
+      <a href="#console">Consola</a>
+      <a href="#start">Comença</a>
       <a href="https://github.com/Lill82/WUGrid">GitHub</a>
     </nav>
+    <div class="langs" aria-label="Idioma">
+      <a href="./" hreflang="ca" lang="ca" aria-current="page">Català</a>
+      <a href="es/" hreflang="es" lang="es">Español</a>
+      <a href="en/" hreflang="en" lang="en">English</a>
+    </div>
   </div>
 </header>
 
 <main>
   <section class="hero">
     <div class="wrap">
-      <div class="badge"><b>Early development</b> · v0.10.0 · read-only unless you restart</div>
-      <h1>Watch every server through a Windows&nbsp;Update restart round</h1>
-      <p class="lead">WUGrid shows each server's state every few seconds, restarts the ones you pick without forcing them,
-        and checks what a green restart can hide. It works agentless over WMI/DCOM, so it runs where WinRM is closed
-        and installs nothing on the servers.</p>
+      <div class="badge"><b>En desenvolupament</b> · v0.10.0 · només lectura llevat que reiniciïs</div>
+      <h1>Segueix cada servidor durant una ronda de reinicis de Windows&nbsp;Update</h1>
+      <p class="lead">WUGrid mostra l'estat de cada servidor cada pocs segons, reinicia els que triïs sense forçar-los
+        i comprova el que un reinici en verd pot amagar. Funciona sense agents per WMI/DCOM, així que va allà on WinRM
+        és tancat i no instal·la res als servidors.</p>
       <div class="buttons">
-        <a class="btn primary" href="https://github.com/Lill82/WUGrid/releases/latest">Download</a>
-        <a class="btn" href="#start">Get started</a>
-        <a class="btn" href="https://github.com/Lill82/WUGrid">View on GitHub</a>
+        <a class="btn primary" href="https://github.com/Lill82/WUGrid/releases/latest">Descarrega</a>
+        <a class="btn" href="#start">Comença</a>
+        <a class="btn" href="https://github.com/Lill82/WUGrid">Mira'l a GitHub</a>
       </div>
       <figure class="shot">
-        <a href="img/grid.png"><img src="img/grid.png" width="1182" height="792"
-          alt="The WUGrid window during a demo round: fourteen servers, coloured by state (back, flagged, booting, down, installing, restart pending), counts across the top, and the round's events below."></a>
+        <a href="img/ca/grid.png"><img src="img/ca/grid.png" width="1182" height="792"
+          alt="La finestra de WUGrid durant una ronda de demostració: catorze servidors acolorits segons l'estat (tornat, amb avisos, arrencant, caigut, instal·lant, reinici pendent), els recomptes a dalt i els esdeveniments de la ronda a sota."></a>
       </figure>
-      <p class="caption">The demo round, 26 minutes in. Simulated servers; nothing is contacted.</p>
+      <p class="caption">La ronda de demostració, als 26 minuts. Servidors simulats: no es contacta amb res.</p>
     </div>
   </section>
 
@@ -203,21 +58,22 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
     <div class="pillars">
       <div class="pillar">
         <div class="icon" style="background: var(--installing)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg></div>
-        <h3>Agentless</h3>
-        <p>ICMP and WMI over DCOM, with one reused connection per server. It uses only what every Windows Server has:
-          no WinRM, no agent and no ConfigMgr.</p>
+        <h3>Sense agents</h3>
+        <p>ICMP i WMI per DCOM, amb una sola connexió reutilitzada per servidor. Només fa servir el que té qualsevol
+          Windows Server: ni WinRM, ni agents, ni ConfigMgr.</p>
       </div>
       <div class="pillar">
         <div class="icon" style="background: var(--back)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></div>
-        <h3>Observe by default</h3>
-        <p>Watching and verifying never change a server. A restart is a named action: you see the plan, confirm it,
-          each server is checked again, and the result is recorded.</p>
+        <h3>Observar per defecte</h3>
+        <p>Seguir i verificar no canvien mai cap servidor. Un reinici és una acció amb nom: en veus el pla, el
+          confirmes, cada servidor es torna a comprovar i el resultat queda registrat.</p>
       </div>
       <div class="pillar">
         <div class="icon" style="background: var(--pending)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
-        <h3>Rules from a real round</h3>
-        <p>Built on a 54-server round. Chained reboots, a minute of “access denied” while a server boots, and component
-          cleanup are routine and shown as such. Real failures are flagged.</p>
+        <h3>Regles d'una ronda real</h3>
+        <p>Fet a partir d'una ronda de 54 servidors. Els reinicis encadenats, un minut d'“accés denegat” mentre un
+          servidor arrenca i la neteja de components són habituals i es mostren com a tals. Les fallades reals es
+          marquen.</p>
       </div>
     </div>
   </div>
@@ -225,27 +81,29 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
   <section class="feature" id="watch">
     <div class="wrap row">
       <div class="text">
-        <div class="eyebrow">Watch</div>
-        <h2>Every server, at a glance</h2>
-        <p>Each server gets its own worker that pings it and reads its last boot, servicing processes and the CBS and
-          Windows Update reboot keys. A <b>cut-off</b> time decides what counts as restarted.</p>
+        <div class="eyebrow">Seguiment</div>
+        <h2>Tots els servidors, d'un cop d'ull</h2>
+        <p>Cada servidor té el seu propi fil, que li fa ping i en llegeix la darrera arrencada, els processos de
+          manteniment i les claus de reinici de CBS i de Windows Update. Una hora de <b>tall</b> decideix què compta com a
+          reiniciat.</p>
         <dl class="states">
-          <dt><span class="chip c-pending">RESTART PENDING</span></dt><dd>not restarted yet; CBS packages or Windows Update waiting</dd>
-          <dt><span class="chip c-notpending">NO RESTART PENDING</span></dt><dd>not restarted yet; nothing pending</dd>
-          <dt><span class="chip c-installing">INSTALLING</span></dt><dd>servicing before the shutdown</dd>
-          <dt><span class="chip c-down">DOWN</span></dt><dd>no ping, with how long it has been down</dd>
-          <dt><span class="chip c-booting">BOOTING</span></dt><dd>answers ping, WMI not ready yet</dd>
-          <dt><span class="chip c-back">BACK</span></dt><dd>restarted after the cut-off, checks clean</dd>
-          <dt><span class="chip c-flagged">BACK · PENDING</span></dt><dd>restarted, but a restart is pending again</dd>
-          <dt><span class="chip c-flagged">BACK</span></dt><dd>restarted, but an update failed or a service is not running</dd>
+          <dt><span class="chip c-pending">RESTART PENDING</span></dt><dd>encara sense reiniciar; paquets CBS o Windows Update esperant</dd>
+          <dt><span class="chip c-notpending">NO RESTART PENDING</span></dt><dd>encara sense reiniciar; res pendent</dd>
+          <dt><span class="chip c-installing">INSTALLING</span></dt><dd>manteniment abans de l'aturada</dd>
+          <dt><span class="chip c-down">DOWN</span></dt><dd>sense ping, amb el temps que fa que és caigut</dd>
+          <dt><span class="chip c-booting">BOOTING</span></dt><dd>respon al ping, WMI encara no està a punt</dd>
+          <dt><span class="chip c-back">BACK</span></dt><dd>reiniciat després del tall, comprovacions correctes</dd>
+          <dt><span class="chip c-flagged">BACK · PENDING</span></dt><dd>reiniciat, però torna a haver-hi un reinici pendent</dd>
+          <dt><span class="chip c-flagged">BACK</span></dt><dd>reiniciat, però ha fallat una actualització o un servei no s'executa</dd>
         </dl>
-        <p class="note" style="margin-top:16px">There are alarms for a server down 15 minutes or still pending 20 minutes
-          after its boot, and one line when every server is back clean with its checks done.</p>
+        <p class="note" style="margin-top:16px">Hi ha alarmes per a un servidor caigut 15 minuts o encara pendent 20
+          minuts després d'arrencar, i una línia quan tots els servidors han tornat nets amb les comprovacions fetes. Els
+          noms dels estats surten en anglès, igual que a la finestra.</p>
       </div>
       <figure class="shot">
-        <a href="img/grid-early.png"><img src="img/grid-early.png" width="1182" height="792" loading="lazy"
-          alt="The grid 12 minutes into the demo round: servers installing, down, booting, back, with a restart pending or none pending."></a>
-        <figcaption>12 minutes in: half the round still installing, down or booting.</figcaption>
+        <a href="img/ca/grid-early.png"><img src="img/ca/grid-early.png" width="1182" height="792" loading="lazy"
+          alt="La graella als 12 minuts de la ronda de demostració: servidors instal·lant, caiguts, arrencant, tornats, amb un reinici pendent o sense."></a>
+        <figcaption>Als 12 minuts: mitja ronda encara instal·lant, caiguda o arrencant.</figcaption>
       </figure>
     </div>
   </section>
@@ -253,24 +111,24 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
   <section class="feature" id="verify">
     <div class="wrap row flip">
       <div class="text">
-        <div class="eyebrow">Verify</div>
-        <h2>Catches the restarts that only look green</h2>
-        <p>When several months of cumulative updates were staged on top of each other, only the oldest committed. The
-          servers came back looking clean, but at an old patch level. Once a server is back, WUGrid reads its System log
-          and services (read-only) and flags:</p>
+        <div class="eyebrow">Verificació</div>
+        <h2>Detecta els reinicis que només semblen verds</h2>
+        <p>Quan es van acumular diversos mesos d'actualitzacions acumulatives preparades l'una sobre l'altra, només es
+          va aplicar la més antiga. Els servidors van tornar aparentment nets, però amb un nivell de pedaços antic. Quan
+          un servidor torna, WUGrid en llegeix el registre System i els serveis (només lectura) i marca:</p>
         <ul>
-          <li>an <b>update that failed</b> (Windows Update event 20), with the error explained;</li>
-          <li>a <b>service not running</b> that ran before the restart, who changed its start type, and <b>why it did
-            not start</b> — timed out at start, a service it depends on, its account — and whether it failed at the boots
-            before too; a stop you know about (a role being removed) can be marked <b>expected</b>: shown with the
-            reason, not flagged;</li>
-          <li>who restarted it and why (event 1074), each boot and the build it came up on.</li>
+          <li>una <b>actualització que ha fallat</b> (esdeveniment 20 de Windows Update), amb l'error explicat;</li>
+          <li>un <b>servei que no s'executa</b> i que s'executava abans del reinici, qui n'ha canviat el tipus d'inici
+            i <b>per què no ha arrencat</b> — temps d'espera esgotat, un servei del qual depèn, el seu compte — i si ja
+            havia fallat en les arrencades anteriors; una aturada que ja coneixes (un rol que s'està traient) es pot
+            marcar com a <b>prevista</b>: es mostra amb el motiu, sense avís;</li>
+          <li>qui l'ha reiniciat i per què (esdeveniment 1074), cada arrencada i la compilació amb què ha arrencat.</li>
         </ul>
-        <p>Double-click a row for the details. The Build column shows the build before and after.</p>
+        <p>Fes doble clic en una fila per veure'n els detalls. La columna Compilació mostra la d'abans i la d'ara.</p>
       </div>
       <figure class="shot">
-        <a href="img/details.png"><img src="img/details.png" width="822" height="652" loading="lazy"
-          alt="Details of SQL01: back but flagged, the 2026-09 cumulative update failed with 0x800F0840 CBS_E_SESSION_CORRUPT, the error explained with what to do, the restart by an admin, one boot, services all running."></a>
+        <a href="img/ca/details.png"><img src="img/ca/details.png" width="822" height="652" loading="lazy"
+          alt="Detalls de SQL01: tornat però amb avisos, l'actualització acumulativa 2026-09 ha fallat amb 0x800F0840 CBS_E_SESSION_CORRUPT, l'error explicat amb què cal fer, el reinici fet per un administrador, una arrencada, tots els serveis en marxa."></a>
       </figure>
     </div>
   </section>
@@ -278,24 +136,24 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
   <section class="feature" id="restart">
     <div class="wrap row">
       <div class="text">
-        <div class="eyebrow">Restart</div>
-        <h2>Restarts that never force</h2>
+        <div class="eyebrow">Reinici</div>
+        <h2>Reinicis que mai no forcen</h2>
         <ul>
-          <li>Only servers with <b>no update work running</b> can be ticked, and each is <b>checked again</b> just
-            before the restart is sent.</li>
-          <li><b>Never forced</b> (<code>Win32ShutdownTracker</code>, reboot without force): running programs can delay
-            or cancel it.</li>
-          <li>A server with a <b>user signed in</b> is skipped, naming who: Windows refuses a restart that is not
-            forced while anyone is signed in.</li>
-          <li>An optional warning period, during which <code>shutdown /a</code> on the server aborts it.</li>
-          <li><b>Check only</b> runs everything but the restart call.</li>
-          <li>Each request and result goes to an append-only <b>audit log</b>, and your comment shows up in
-            event 1074 on the server.</li>
+          <li>Només es poden marcar els servidors <b>sense feina d'actualització en curs</b>, i cada un es <b>torna a
+            comprovar</b> just abans d'enviar el reinici.</li>
+          <li><b>Mai forçat</b> (<code>Win32ShutdownTracker</code>, reinici sense forçar): els programes en marxa el
+            poden endarrerir o cancel·lar.</li>
+          <li>S'omet el servidor que tingui un <b>usuari amb la sessió iniciada</b>, i es diu qui: Windows rebutja un
+            reinici sense forçar mentre hi hagi algú amb la sessió iniciada.</li>
+          <li>Un avís opcional, durant el qual <code>shutdown /a</code> al servidor l'anul·la.</li>
+          <li><b>Només comprova</b> ho fa tot llevat de la crida de reinici.</li>
+          <li>Cada petició i cada resultat van a un <b>registre d'auditoria</b> on només s'afegeix, i el teu comentari
+            surt a l'esdeveniment 1074 del servidor.</li>
         </ul>
       </div>
       <figure class="shot">
-        <a href="img/reboot.png"><img src="img/reboot.png" width="982" height="632" loading="lazy"
-          alt="The Reboot servers window: each server with whether it can be restarted now and why not (component cleanup, down, booting, installing updates), two servers with a restart pending ticked, warning and comment options, Check only and Restart buttons."></a>
+        <a href="img/ca/reboot.png"><img src="img/ca/reboot.png" width="982" height="632" loading="lazy"
+          alt="La finestra Reinicia servidors: cada servidor amb si es pot reiniciar ara i per què no (neteja de components, caigut, arrencant, instal·lant actualitzacions), dos servidors amb un reinici pendent marcats, les opcions d'avís i de comentari i els botons Només comprova i Reinicia."></a>
       </figure>
     </div>
   </section>
@@ -303,16 +161,16 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
   <section class="feature" id="report">
     <div class="wrap row flip">
       <div class="text">
-        <div class="eyebrow">Report</div>
-        <h2>The round, on one page</h2>
-        <p><b>Report…</b> saves the round as a self-contained HTML page, with a summary and a “needs attention” section
-          to mail or attach to a change. It can also save CSV for Excel.
-          <code>wugrid-cli verify</code> makes the same report from the command line.</p>
-        <p><a href="sample-report.html">Open the demo round's report →</a></p>
+        <div class="eyebrow">Informe</div>
+        <h2>La ronda, en una pàgina</h2>
+        <p><b>Informe…</b> desa la ronda com una pàgina HTML autònoma, amb un resum i un apartat “cal revisar” per
+          enviar per correu o adjuntar a un canvi. També pot desar CSV per a Excel.
+          <code>wugrid-cli verify</code> fa el mateix informe des de la línia d'ordres. L'informe és en anglès.</p>
+        <p><a href="sample-report.html">Obre l'informe de la ronda de demostració →</a></p>
       </div>
       <figure class="shot">
         <a href="sample-report.html"><img src="img/report.png" width="1280" height="1000" loading="lazy"
-          alt="The HTML round report: fourteen servers with state, last boot, boots, who restarted them, build before and after and updates installed, and a needs-attention section listing SQL01's failed update."></a>
+          alt="L'informe HTML de la ronda: catorze servidors amb l'estat, la darrera arrencada, les arrencades, qui els ha reiniciat, la compilació d'abans i d'ara i les actualitzacions instal·lades, i un apartat cal revisar amb l'actualització fallida de SQL01."></a>
       </figure>
     </div>
   </section>
@@ -320,17 +178,17 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
   <section class="feature" id="errors">
     <div class="wrap row">
       <div class="text">
-        <div class="eyebrow">Explain</div>
-        <h2>Every error code, explained</h2>
-        <p>The catalog has 438 CBS, Windows Update, WMI and Win32 codes, with descriptions and fixes from Microsoft
-          Learn and WUGrid's own notes for the codes it runs into on real rounds. Search by code or by word. Hover a
-          note in the grid for a summary.</p>
-        <p>Decisions use event IDs and error codes, never message text, so they work whatever language the servers
-          use.</p>
+        <div class="eyebrow">Explicació</div>
+        <h2>Cada codi d'error, explicat</h2>
+        <p>El catàleg té 438 codis de CBS, Windows Update, WMI i Win32, amb descripcions i solucions de Microsoft Learn
+          (en anglès) i les notes pròpies de WUGrid per als codis que troba a les rondes reals. Cerca per codi o per
+          paraula. Passa el ratolí per sobre d'una nota de la graella per veure'n un resum.</p>
+        <p>Les decisions es basen en identificadors d'esdeveniment i codis d'error, mai en el text dels missatges, així
+          que funcionen sigui quin sigui l'idioma dels servidors.</p>
       </div>
       <figure class="shot">
-        <a href="img/errors.png"><img src="img/errors.png" width="902" height="652" loading="lazy"
-          alt="The Error codes window searching for the word corrupt: CBS, Windows Update, Win32 and WMI codes, with 0x800F0840 selected and explained."></a>
+        <a href="img/ca/errors.png"><img src="img/ca/errors.png" width="902" height="652" loading="lazy"
+          alt="La finestra Codis d'error cercant la paraula corrupt: codis de CBS, Windows Update, Win32 i WMI, amb 0x800F0840 seleccionat i explicat."></a>
       </figure>
     </div>
   </section>
@@ -339,33 +197,34 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
     <div class="wrap">
       <div class="row flip">
         <div class="text">
-          <div class="eyebrow">Console</div>
-          <h2>The same round in a console</h2>
-          <p><code>wugrid-cli watch</code> uses the same probe, states, alarms and checks as the window. Its grid
-            redraws every second; when the servers don't all fit, clean ones fold into a single line. It re-reads the
-            server list file when it changes.</p>
-          <p>Run it <b>headless</b> and it prints one line per change and alarm, then stops once every server is back
-            clean. A script or a background task can follow that output.</p>
+          <div class="eyebrow">Consola</div>
+          <h2>La mateixa ronda en una consola</h2>
+          <p><code>wugrid-cli watch</code> fa servir la mateixa sonda, els mateixos estats, alarmes i comprovacions que
+            la finestra. La graella es redibuixa cada segon; quan no hi caben tots els servidors, els nets es plegen en
+            una sola línia. Torna a llegir el fitxer de la llista de servidors quan canvia.</p>
+          <p>Executa'l <b>sense interfície</b> (<code>--headless</code>) i escriu una línia per canvi i per alarma, i
+            s'atura quan tots els servidors han tornat nets. Un script o una tasca en segon pla pot seguir aquesta
+            sortida. La consola és en anglès.</p>
         </div>
         <figure class="shot">
           <a href="img/console.png"><img src="img/console.png" width="994" height="640" loading="lazy"
-            alt="wugrid-cli watch in a console window: the same fourteen servers in coloured rows with counts, the transient-error footnote and the latest events."></a>
+            alt="wugrid-cli watch en una finestra de consola: els mateixos catorze servidors en files de colors amb els recomptes, la nota sobre els errors temporals i els darrers esdeveniments."></a>
         </figure>
       </div>
       <div class="cli-grid">
         <div>
-          <h3>Commands</h3>
+          <h3>Ordres</h3>
 <pre class="term"><span class="p">&gt;</span> wugrid-cli watch --list servers.txt --since 2026-10-17T15:00
 <span class="p">&gt;</span> wugrid-cli watch --list servers.txt --headless \
       --state state.json --events events.jsonl
 <span class="p">&gt;</span> wugrid-cli verify SRV01 SRV02 --html round.html
 <span class="p">&gt;</span> wugrid-cli check SRV01         <span class="c"># DNS, ping, WMI, admin$</span>
-<span class="p">&gt;</span> wugrid-cli error 0x800F0840   <span class="c"># explain a code</span></pre>
-          <p><code>--state</code> rewrites the round as JSON on every refresh and <code>--events</code> appends one JSON
-            line per event. The exit code says whether every server ended back clean.</p>
+<span class="p">&gt;</span> wugrid-cli error 0x800F0840   <span class="c"># explica un codi</span></pre>
+          <p><code>--state</code> reescriu la ronda en JSON a cada actualització i <code>--events</code> afegeix una
+            línia JSON per esdeveniment. El codi de sortida diu si tots els servidors han acabat tornant nets.</p>
         </div>
         <div>
-          <h3>Headless output</h3>
+          <h3>Sortida sense interfície</h3>
 <pre class="term">15:22:12 RDS01: <span class="alarm">ALARM DOWN for 15m12s</span>
 15:29:07 SQL01: INSTALLING -&gt; DOWN
 15:31:09 SQL01: DOWN -&gt; BOOTING (Access is denied. *)
@@ -375,8 +234,8 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
          <span class="alarm">(CBS 3 pkgs)</span>
 15:32:57 SQL01: BACK (servicing finishing) -&gt; <span class="flag">BACK (update</span>
          <span class="flag">failed: KB5900001 (0x800F0840 CBS_E_SESSION_CORRUPT))</span></pre>
-          <p>Taken from the demo round. The asterisk marks errors that are usually temporary while a server
-            restarts.</p>
+          <p>Tret de la ronda de demostració. L'asterisc marca els errors que solen ser temporals mentre un servidor es
+            reinicia.</p>
         </div>
       </div>
     </div>
@@ -385,59 +244,62 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
   <section class="feature" id="start">
     <div class="wrap">
       <div class="center">
-        <h2>Get started</h2>
-        <p class="sub">WUGrid is in early development: download the latest release, or build it from source in a
-          minute.</p>
+        <h2>Comença</h2>
+        <p class="sub">WUGrid és en desenvolupament: descarrega la darrera versió o compila'l des del codi font en un
+          minut.</p>
       </div>
       <div class="cards">
         <div class="card">
-          <h3>Download</h3>
-          <p>A zip with <code>WUGrid.exe</code> and <code>wugrid-cli.exe</code>: unzip it anywhere and run, nothing to
-            install. The binaries are not signed yet, so unblock the zip first (Properties → Unblock).</p>
-          <p><a class="btn primary" href="https://github.com/Lill82/WUGrid/releases/latest">Latest release</a></p>
-          <p>Or build it, with the .NET SDK 8 or later:</p>
+          <h3>Descarrega</h3>
+          <p>Un zip amb <code>WUGrid.exe</code> i <code>wugrid-cli.exe</code>: descomprimeix-lo on vulguis i executa'l,
+            no cal instal·lar res. Els binaris encara no estan signats, així que primer desbloqueja el zip (Propietats →
+            Desbloqueja).</p>
+          <p><a class="btn primary" href="https://github.com/Lill82/WUGrid/releases/latest">Darrera versió</a></p>
+          <p>O compila'l amb el .NET SDK 8 o posterior:</p>
 <pre class="term"><span class="p">&gt;</span> git clone https://github.com/Lill82/WUGrid
 <span class="p">&gt;</span> dotnet build WUGrid.sln -c Release</pre>
         </div>
         <div class="card">
-          <h3>Try the demo</h3>
-          <p>A simulated 75-minute round of 14 made-up servers, with every pattern from the field notes. No server is
-            contacted.</p>
+          <h3>Prova la demo</h3>
+          <p>Una ronda simulada de 75 minuts amb 14 servidors inventats, amb tots els casos de les notes de camp. No es
+            contacta amb cap servidor.</p>
 <pre class="term"><span class="p">&gt;</span> WUGrid.exe --demo
 <span class="p">&gt;</span> wugrid-cli watch --demo</pre>
+          <p>Les finestres són en català, castellà o anglès: tria'n un a la barra d'estat o fes servir
+            <code>--lang</code>. La consola, els informes i els registres són en anglès.</p>
         </div>
         <div class="card">
-          <h3>Requirements</h3>
+          <h3>Requisits</h3>
           <ul>
-            <li>Windows with .NET Framework 4.8 on the admin workstation</li>
-            <li>ICMP and DCOM/RPC to the servers (SMB for the admin$ check)</li>
-            <li>An account that is an administrator on them</li>
-            <li>Nothing installed on the servers; WinRM not needed</li>
+            <li>Windows amb .NET Framework 4.8 a l'estació de treball d'administració</li>
+            <li>ICMP i DCOM/RPC cap als servidors (SMB per a la comprovació d'admin$)</li>
+            <li>Un compte que en sigui administrador</li>
+            <li>No s'instal·la res als servidors; no cal WinRM</li>
           </ul>
         </div>
       </div>
 
       <div class="center" style="margin-top:64px">
-        <h2>Where it is going</h2>
-        <p class="sub">From watching a round to driving it: scan, install, restart in waves, verify.</p>
+        <h2>Cap on va</h2>
+        <p class="sub">De seguir una ronda a conduir-la: cercar, instal·lar, reiniciar per onades, verificar.</p>
       </div>
       <ol class="roadmap">
-        <li><span class="m">M0</span><span class="s done">done</span><span class="d"><b>Foundation:</b> solution, tests, CI, anonymised field notes</span></li>
-        <li><span class="m">M1</span><span class="s built">built</span><span class="d"><b>Watch:</b> live grid, console grid, headless events, state JSON</span></li>
-        <li><span class="m">M2</span><span class="s done">done</span><span class="d"><b>Verify:</b> update results, services baseline and why a service did not start, who restarted, report</span></li>
-        <li><span class="m">M3</span><span class="s cut">first cut</span><span class="d"><b>Restart:</b> guards (update work, users signed in), re-check, never forced, audit, expected stops; waves and a protect list next</span></li>
-        <li><span class="m">M4</span><span class="s next">next</span><span class="d"><b>Updates:</b> scan → approve → install → restart → verify, agentless</span></li>
-        <li><span class="m">M5</span><span class="s cut">first cut</span><span class="d"><b>Release:</b> zip on GitHub Releases from 0.9.0; docs and code signing next</span></li>
+        <li><span class="m">M0</span><span class="s done">fet</span><span class="d"><b>Fonaments:</b> solució, proves, CI, notes de camp anonimitzades</span></li>
+        <li><span class="m">M1</span><span class="s built">construït</span><span class="d"><b>Seguiment:</b> graella en directe, graella de consola, esdeveniments sense interfície, estat en JSON</span></li>
+        <li><span class="m">M2</span><span class="s done">fet</span><span class="d"><b>Verificació:</b> resultats de les actualitzacions, línia de base dels serveis i per què un servei no ha arrencat, qui ha reiniciat, informe</span></li>
+        <li><span class="m">M3</span><span class="s cut">primera versió</span><span class="d"><b>Reinici:</b> salvaguardes (feina d'actualització, usuaris amb la sessió iniciada), nova comprovació, mai forçat, auditoria, aturades previstes; a continuació, onades i una llista de protegits</span></li>
+        <li><span class="m">M4</span><span class="s next">següent</span><span class="d"><b>Actualitzacions:</b> cercar → aprovar → instal·lar → reiniciar → verificar, sense agents</span></li>
+        <li><span class="m">M5</span><span class="s cut">primera versió</span><span class="d"><b>Publicació:</b> zip a GitHub Releases des de la 0.9.0; a continuació, documentació i signatura del codi</span></li>
       </ol>
     </div>
   </section>
   <section class="feature" id="author">
     <div class="wrap">
       <div class="center">
-        <h2>Who made it</h2>
-        <p class="sub">WUGrid is written by Alex Lillo, a Windows sysadmin, with Claude. It started as a PowerShell watch
-          grid built during a real 54-server patch round and grew into this tool. Questions, ideas and field reports are
-          welcome on GitHub.</p>
+        <h2>Qui l'ha fet</h2>
+        <p class="sub">WUGrid l'escriu Alex Lillo, administrador de sistemes Windows, amb Claude. Va començar com una
+          graella de seguiment en PowerShell feta durant una ronda real de pedaços de 54 servidors i ha crescut fins a ser
+          aquesta eina. Preguntes, idees i informes de camp són benvinguts a GitHub.</p>
         <p class="author-links">
           <a class="btn" href="https://www.linkedin.com/in/alex-lillo-cst/" rel="author">LinkedIn</a>
           <a class="btn" href="https://github.com/Lill82">GitHub</a>
@@ -449,8 +311,8 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
 
 <footer>
   <div class="wrap">
-    <span>WUGrid · vibed by Claude &amp; <a href="#author">Alex Lillo</a> · <a href="https://github.com/Lill82/WUGrid/blob/main/LICENSE">MIT licence</a> · <a href="https://github.com/Lill82/WUGrid">github.com/Lill82/WUGrid</a></span>
-    <span>Error descriptions from Microsoft Learn (CC BY 4.0). Not affiliated with Microsoft.</span>
+    <span>WUGrid · fet amb bones vibracions per Claude i <a href="#author">Alex Lillo</a> · <a href="https://github.com/Lill82/WUGrid/blob/main/LICENSE">llicència MIT</a> · <a href="https://github.com/Lill82/WUGrid">github.com/Lill82/WUGrid</a></span>
+    <span>Descripcions dels errors de Microsoft Learn (CC BY 4.0). Sense cap vincle amb Microsoft.</span>
   </div>
 </footer>
 

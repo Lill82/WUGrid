@@ -43,6 +43,17 @@ Core layers:
 | Actions | `RestartAction`, update providers (`IUpdateProvider`), each with guards and audit. |
 | Outputs | State snapshot JSON, transitions/alarms log (JSONL), end-of-round CSV/HTML report, optional activity log. |
 
+### Languages
+
+The GUI's own text comes in Catalan (default), Spanish and English: `L.T("Servers…")` / `L.F("Reboot {0}…", name)` in
+`WUGrid.Gui`, keyed by the English text, looked up in `Strings.ca.tsv` / `Strings.es.tsv` (embedded in the exe, not
+satellite folders) through `Core.Localization.Translations`; a missing entry falls back to English. Chosen by `--lang`,
+else `language=` in `settings.txt` (the status bar's picker, used from the next start), else Catalan. `TranslationsTests`
+fails when a GUI text has no translation, a translation is no longer used, or the placeholders differ. What Core writes —
+state names, notes, round events, restart reasons, report lines, the error catalog — stays English, since it also feeds
+the CLI, reports, JSON and logs. The project page comes in the same three languages (`site/index.html` = Catalan, `site/es/`, `site/en/`), each with
+pictures of the GUI in its language (`--screenshots` takes `--lang`; English without it).
+
 ### Activity log
 
 `ActivityLog` (Core) is an optional troubleshooting log, off unless the operator turns it on (GUI status bar, saved as

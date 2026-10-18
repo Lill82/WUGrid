@@ -9,6 +9,7 @@ using System.Windows.Forms;
 using WUGrid.Core;
 using WUGrid.Core.Demo;
 using WUGrid.Core.Errors;
+using WUGrid.Core.Localization;
 using WUGrid.Core.Probing;
 using WUGrid.Core.Reports;
 using WUGrid.Core.Restart;
@@ -52,7 +53,7 @@ namespace WUGrid.Gui
             scale = DeviceDpi / 96f;
             timer.Interval = demo != null ? 500 : 1000;
 
-            Text = $"WUGrid {AppInfo.Version}" + (demo != null ? " — demo round" : "");
+            Text = $"WUGrid {AppInfo.Version}" + (demo != null ? L.T(" — demo round") : "");
             Icon = AppInfo.Icon;
             Font = new Font("Segoe UI", 9.75f);
             ClientSize = new Size(Px(1180), Px(760));
@@ -85,7 +86,7 @@ namespace WUGrid.Gui
                 ToolTipText = AppInfo.RepoUrl,
             };
             credit.Click += (s, e) => AppInfo.OpenRepo();
-            strip.Items.AddRange(new ToolStripItem[] { status, BuildLogButton(), credit });
+            strip.Items.AddRange(new ToolStripItem[] { status, BuildLogButton(), BuildLanguageButton(), credit });
 
             // Docking runs from the last control added: tool strip outermost, then the header, then the split fills the rest
             Controls.AddRange(new Control[] { split, BuildHeader(), BuildToolbar(), strip });
@@ -123,22 +124,22 @@ namespace WUGrid.Gui
             var bar = new ToolStrip { GripStyle = ToolStripGripStyle.Hidden, Padding = new Padding(Px(6), Px(2), 0, Px(2)) };
             if (demo != null)
             {
-                var pause = new ToolStripButton("Pause");
-                var restart = new ToolStripButton("Restart demo");
+                var pause = new ToolStripButton(L.T("Pause"));
+                var restart = new ToolStripButton(L.T("Restart demo"));
                 var speed = new ToolStripComboBox { DropDownStyle = ComboBoxStyle.DropDownList, AutoSize = false, Width = Px(70) };
                 var speeds = new[] { 10, 30, 60, 120 };
                 foreach (var x in speeds) speed.Items.Add($"{x}×");
                 speed.SelectedIndex = Array.IndexOf(speeds, (int)demo.Speed) is var i && i >= 0 ? i : 1;
-                pause.Click += (s, e) => { demo.Paused = !demo.Paused; pause.Text = demo.Paused ? "Resume" : "Pause"; };
+                pause.Click += (s, e) => { demo.Paused = !demo.Paused; pause.Text = demo.Paused ? L.T("Resume") : L.T("Pause"); };
                 restart.Click += (s, e) => { demo.Restart(); ResetView(); ShowRound(demo.Snapshot()); };
                 speed.SelectedIndexChanged += (s, e) => demo.Speed = speeds[speed.SelectedIndex];
-                bar.Items.AddRange(new ToolStripItem[] { pause, restart, new ToolStripSeparator(), new ToolStripLabel("Speed"), speed });
+                bar.Items.AddRange(new ToolStripItem[] { pause, restart, new ToolStripSeparator(), new ToolStripLabel(L.T("Speed")), speed });
             }
             else if (live != null)
             {
-                var servers = new ToolStripButton("Servers…") { ToolTipText = "Add or remove servers; each one added is checked once (read-only)" };
+                var servers = new ToolStripButton(L.T("Servers…")) { ToolTipText = L.T("Add or remove servers; each one added is checked once (read-only)") };
                 servers.Click += (s, e) => EditServers();
-                var reboot = new ToolStripButton("Reboot…") { ToolTipText = "Pick servers to restart (never forced, only when no update work is running)" };
+                var reboot = new ToolStripButton(L.T("Reboot…")) { ToolTipText = L.T("Pick servers to restart (never forced, only when no update work is running)") };
                 reboot.Font = new Font(reboot.Font, FontStyle.Bold);
                 reboot.Click += (s, e) => Reboot();
                 var picker = new DateTimePicker { Format = DateTimePickerFormat.Custom, CustomFormat = "dd-MM-yyyy HH:mm", Width = Px(140), Value = live.Since };
@@ -148,24 +149,24 @@ namespace WUGrid.Gui
                 foreach (var x in seconds) poll.Items.Add($"{x} s");
                 poll.SelectedIndex = Array.IndexOf(seconds, (int)live.Interval.TotalSeconds) is var p && p >= 0 ? p : 1;
                 poll.SelectedIndexChanged += (s, e) => live.Interval = TimeSpan.FromSeconds(seconds[poll.SelectedIndex]);
-                const string pollTip = "How often each server is pinged and read over WMI";
+                var pollTip = L.T("How often each server is pinged and read over WMI");
                 bar.Items.AddRange(new ToolStripItem[]
                 {
                     servers, reboot, new ToolStripSeparator(),
-                    new ToolStripLabel("Restarted after") { ToolTipText = "Round cut-off: a server counts as restarted when it booted after this" },
+                    new ToolStripLabel(L.T("Restarted after")) { ToolTipText = L.T("Round cut-off: a server counts as restarted when it booted after this") },
                     new ToolStripControlHost(picker), new ToolStripSeparator(),
-                    new ToolStripLabel("Poll every") { ToolTipText = pollTip }, poll,
+                    new ToolStripLabel(L.T("Poll every")) { ToolTipText = pollTip }, poll,
                 });
                 poll.ToolTipText = pollTip;
             }
-            var expected = new ToolStripButton("Expected…") { ToolTipText = "Services you expect not to run after the restart (a role being removed): shown with the reason, not flagged. Nothing is sent." };
+            var expected = new ToolStripButton(L.T("Expected…")) { ToolTipText = L.T("Services you expect not to run after the restart (a role being removed): shown with the reason, not flagged. Nothing is sent.") };
             expected.Click += (s, e) => EditExpected();
-            var errors = new ToolStripButton("Error codes…") { ToolTipText = "Explain a CBS, Windows Update, WMI or Win32 error code" };
+            var errors = new ToolStripButton(L.T("Error codes…")) { ToolTipText = L.T("Explain a CBS, Windows Update, WMI or Win32 error code") };
             errors.Click += (s, e) => ShowErrorCodes(null);
-            var report = new ToolStripButton("Report…") { ToolTipText = "Save the round as an HTML page (opened after saving) or a CSV file" };
+            var report = new ToolStripButton(L.T("Report…")) { ToolTipText = L.T("Save the round as an HTML page (opened after saving) or a CSV file") };
             report.Click += (s, e) => SaveReport();
             bar.Items.AddRange(new ToolStripItem[] { new ToolStripSeparator(), expected, report, errors });
-            var note = demo != null ? "Round time runs faster than real time" : "Read-only, except restarts you send with Reboot…";
+            var note = demo != null ? L.T("Round time runs faster than real time") : L.T("Read-only, except restarts you send with Reboot…");
             bar.Items.Add(new ToolStripLabel(note) { ForeColor = Palette.MutedText, Alignment = ToolStripItemAlignment.Right });
             return bar;
         }
@@ -173,8 +174,8 @@ namespace WUGrid.Gui
         // A tick: off by default, the choice remembered for the next start (and for wugrid-cli); right-click opens the folder
         ToolStripItem BuildLogButton()
         {
-            var keep = new CheckBox { Text = "Logging", AutoSize = true, Checked = ActivityLog.Enabled, BackColor = Color.Transparent, Padding = new Padding(Px(4), 0, Px(4), 0) };
-            var open = new ToolStripMenuItem("Open the log folder");
+            var keep = new CheckBox { Text = L.T("Logging"), AutoSize = true, Checked = ActivityLog.Enabled, BackColor = Color.Transparent, Padding = new Padding(Px(4), 0, Px(4), 0) };
+            var open = new ToolStripMenuItem(L.T("Open the log folder"));
             keep.ContextMenuStrip = new ContextMenuStrip();
             keep.ContextMenuStrip.Items.Add(open);
             var tip = new ToolTip();
@@ -183,9 +184,9 @@ namespace WUGrid.Gui
                 var log = ActivityLog.Current;
                 keep.ForeColor = log?.Problem != null ? Palette.AlarmText : log != null ? Palette.Text : Palette.MutedText;
                 tip.SetToolTip(keep, (log == null
-                    ? "Activity log off: tick to keep what WUGrid does and every error, to look at afterwards"
-                    : log.Problem ?? $"Activity log on: {log.File ?? log.Directory}\nChanges and errors only, not every poll; kept {ActivityLog.KeepDays} days")
-                    + "\nRight-click to open the log folder");
+                    ? L.T("Activity log off: tick to keep what WUGrid does and every error, to look at afterwards")
+                    : log.Problem ?? L.F("Activity log on: {0}\nChanges and errors only, not every poll; kept {1} days", log.File ?? log.Directory, ActivityLog.KeepDays))
+                    + "\n" + L.T("Right-click to open the log folder"));
             }
             keep.CheckedChanged += (s, e) =>
             {
@@ -195,7 +196,8 @@ namespace WUGrid.Gui
                 try { Settings.Set(ActivityLog.SettingName, keep.Checked ? "on" : "off"); }
                 catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
                 {
-                    MessageBox.Show(this, $"The log is {(keep.Checked ? "on" : "off")} for this run, but the choice could not be saved to {Settings.DefaultPath}:\n{ex.Message}",
+                    MessageBox.Show(this, keep.Checked ? L.F("The log is on for this run, but the choice could not be saved to {0}:\n{1}", Settings.DefaultPath, ex.Message)
+                                                       : L.F("The log is off for this run, but the choice could not be saved to {0}:\n{1}", Settings.DefaultPath, ex.Message),
                                     "WUGrid", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
                 Show();
@@ -208,11 +210,37 @@ namespace WUGrid.Gui
                     Directory.CreateDirectory(dir);
                     Process.Start(new ProcessStartInfo(dir) { UseShellExecute = true });
                 }
-                catch (Exception ex) { MessageBox.Show(this, $"Could not open {dir}:\n{ex.Message}", "WUGrid", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
+                catch (Exception ex) { MessageBox.Show(this, L.F("Could not open {0}:\n{1}", dir, ex.Message), "WUGrid", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
             };
             timer.Tick += (s, e) => { if (ActivityLog.Current?.Problem != null || keep.ForeColor == Palette.AlarmText) Show(); };
             Show();
             return new ToolStripControlHost(keep) { BackColor = Color.Transparent };
+        }
+
+        // The windows' language, each named in its own; kept in settings.txt and used from the next start (a running round
+        // keeps its window and event pane)
+        ToolStripItem BuildLanguageButton()
+        {
+            var button = new ToolStripDropDownButton(Translations.Languages.First(l => l.Code == L.Language).Name) { ToolTipText = L.T("Language of the windows") };
+            foreach (var (code, name) in Translations.Languages)
+            {
+                var item = new ToolStripMenuItem(name) { Checked = code == L.Language };
+                item.Click += (s, e) =>
+                {
+                    foreach (ToolStripMenuItem other in button.DropDownItems) other.Checked = other == item;
+                    try
+                    {
+                        Settings.Set(L.SettingName, code);
+                        MessageBox.Show(this, L.In(code, "WUGrid will be in this language the next time it starts."), "WUGrid", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                    {
+                        MessageBox.Show(this, L.F("The language could not be saved to {0}:\n{1}", Settings.DefaultPath, ex.Message), "WUGrid", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                };
+                button.DropDownItems.Add(item);
+            }
+            return button;
         }
 
         void EditServers()
@@ -227,7 +255,7 @@ namespace WUGrid.Gui
                     catch (Exception ex)
                     {
                         ActivityLog.Warn(null, $"server list not saved to {listPath}", ex);
-                        MessageBox.Show(this, $"Could not save the server list to {listPath}:\n{ex.Message}", "WUGrid", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        MessageBox.Show(this, L.F("Could not save the server list to {0}:\n{1}", listPath, ex.Message), "WUGrid", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
                 }
                 ShowRound(live.Snapshot());
@@ -250,13 +278,13 @@ namespace WUGrid.Gui
             grid.Rows[rowIndex].Selected = true;
             var el = RestartGuard.Check(row.Observation, row.Status);
             var menu = new ContextMenuStrip();
-            var reboot = new ToolStripMenuItem(el.Allowed ? $"Reboot {name}…" : $"Reboot {name}: no — {el.Reason}") { Enabled = el.Allowed };
+            var reboot = new ToolStripMenuItem(el.Allowed ? L.F("Reboot {0}…", name) : L.F("Reboot {0}: no — {1}", name, el.Reason)) { Enabled = el.Allowed };
             if (el.Allowed)
             {
                 reboot.Font = new Font(reboot.Font, FontStyle.Bold);
                 reboot.Click += (s, e) => Reboot(name);
             }
-            var details = new ToolStripMenuItem("Details…");
+            var details = new ToolStripMenuItem(L.T("Details…"));
             details.Click += (s, e) => ShowDetails(name);
             menu.Items.AddRange(new ToolStripItem[] { reboot, new ToolStripSeparator(), details });
             menu.Closed += (s, e) => BeginInvoke((Action)menu.Dispose);
@@ -285,7 +313,7 @@ namespace WUGrid.Gui
                     catch (Exception ex)
                     {
                         ActivityLog.Warn(null, $"expected stops not saved to {expectedPath}", ex);
-                        MessageBox.Show(this, $"Could not save the expected stops to {expectedPath}:\n{ex.Message}", "WUGrid", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        MessageBox.Show(this, L.F("Could not save the expected stops to {0}:\n{1}", expectedPath, ex.Message), "WUGrid", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
                 }
                 ShowRound(source.Snapshot());
@@ -324,8 +352,8 @@ namespace WUGrid.Gui
             var snap = source.Snapshot();
             using (var dialog = new SaveFileDialog
             {
-                Title = "Save round report",
-                Filter = "HTML page (*.html)|*.html|CSV for Excel (*.csv)|*.csv",
+                Title = L.T("Save round report"),
+                Filter = L.T("HTML page (*.html)|*.html|CSV for Excel (*.csv)|*.csv"),
                 FileName = $"wugrid-round-{snap.Now:yyyyMMdd-HHmm}.html",
             })
             {
@@ -339,7 +367,7 @@ namespace WUGrid.Gui
                 catch (Exception ex)
                 {
                     ActivityLog.Warn(null, $"report not saved to {dialog.FileName}", ex);
-                    MessageBox.Show(this, $"Could not save the report:\n{ex.Message}", "WUGrid", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show(this, L.F("Could not save the report:\n{0}", ex.Message), "WUGrid", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
         }
@@ -373,14 +401,14 @@ namespace WUGrid.Gui
             head.Font = new Font("Segoe UI Semibold", 9f);
             head.Padding = new Padding(Px(6), 0, Px(6), 0);
 
-            AddColumn("Server", "Server", 14);
-            AddColumn("Ping", "Ping", 6);
-            AddColumn("State", "State", 14);
-            AddColumn("LastBoot", "Last boot", 12);
-            AddColumn("Elapsed", "Up / Down", 9);
+            AddColumn("Server", L.T("Server"), 14);
+            AddColumn("Ping", L.T("Ping"), 6);
+            AddColumn("State", L.T("State"), 14);
+            AddColumn("LastBoot", L.T("Last boot"), 12);
+            AddColumn("Elapsed", L.T("Up / Down"), 9);
             AddColumn("TiWorker", "TiWorker", 8);
-            AddColumn("Build", "Build", 14);
-            AddColumn("Note", "Note", 31);
+            AddColumn("Build", L.T("Build"), 14);
+            AddColumn("Note", L.T("Note"), 31);
             grid.Columns["Server"].DefaultCellStyle.Font = new Font("Segoe UI Semibold", 9.75f);
             var state = grid.Columns["State"].DefaultCellStyle;
             state.Font = new Font("Segoe UI", 9f, FontStyle.Bold);
@@ -416,9 +444,9 @@ namespace WUGrid.Gui
             events.FullRowSelect = true;
             events.HeaderStyle = ColumnHeaderStyle.Nonclickable;
             events.BorderStyle = BorderStyle.None;
-            events.Columns.Add("Time", Px(80));
-            events.Columns.Add("Server", Px(110));
-            events.Columns.Add("Event", Px(600));
+            events.Columns.Add(L.T("Time"), Px(80));
+            events.Columns.Add(L.T("Server"), Px(110));
+            events.Columns.Add(L.T("Event"), Px(600));
             events.Resize += (s, e) => events.Columns[2].Width = Math.Max(Px(200), events.ClientSize.Width - Px(190));
         }
 
@@ -440,9 +468,10 @@ namespace WUGrid.Gui
                 if (e.Kind != RoundEventKind.Seen) AddEvent(e);
                 else ActivityLog.Info(e.Server, e.Text);
             }
-            status.Text = demo != null ? "Demo round: simulated, no servers are contacted."
-                        : snap.Rows.Count == 0 ? "No servers yet: click Servers… to add some."
-                        : $"{snap.Rows.Count} servers, polled every {live.Interval.TotalSeconds:0} s over ICMP and DCOM/WMI. Double-click a row for its update results, restarts and services.";
+            status.Text = demo != null ? L.T("Demo round: simulated, no servers are contacted.")
+                        : snap.Rows.Count == 0 ? L.T("No servers yet: click Servers… to add some.")
+                        : L.F("{0} servers, polled every {1:0} s over ICMP and DCOM/WMI. Double-click a row for its update results, restarts and services.",
+                              snap.Rows.Count, live.Interval.TotalSeconds);
         }
 
         void UpdateRow(ServerRow r)
@@ -455,11 +484,11 @@ namespace WUGrid.Gui
             }
             var o = r.Observation;
             var s = r.Status;
-            Set(row, "Ping", o.Ping == true ? "up" : o.Ping == false ? "--" : "");
+            Set(row, "Ping", o.Ping == true ? L.T("up") : o.Ping == false ? "--" : "");
             Set(row, "State", s.Label);
             if (o.LastBoot.HasValue) Set(row, "LastBoot", o.LastBoot.Value.ToString("dd-MM HH:mm"));   // keep the last known while down
             Set(row, "Elapsed", s.Elapsed.HasValue ? Durations.Format(s.Elapsed.Value) : "");
-            Set(row, "TiWorker", o.TiWorker && o.Ping == true ? "yes" : "");
+            Set(row, "TiWorker", o.TiWorker && o.Ping == true ? L.T("yes") : "");
             Set(row, "Build", RoundReport.ShortBuildChange(o));
             Set(row, "Note", s.Note);
 
@@ -489,7 +518,7 @@ namespace WUGrid.Gui
         static string Explain(int code)
         {
             var e = ErrorCatalog.Lookup(code)[0];
-            return $"{ErrorCatalog.Summary(code)}\n{e.Description}" + (e.Mitigation == "" ? "" : $"\nWhat to do: {e.Mitigation}");
+            return $"{ErrorCatalog.Summary(code)}\n{e.Description}" + (e.Mitigation == "" ? "" : "\n" + L.F("What to do: {0}", e.Mitigation));
         }
 
         static void Set(DataGridViewRow row, string column, string value)
@@ -503,18 +532,18 @@ namespace WUGrid.Gui
             // Short chip names so eight fit next to the clock; the tooltip says what each counts
             var counts = new (string Label, int Count, Color Strong, string Tip)[]
             {
-                ("BACK", snap.Rows.Count(r => r.Status.IsClean), Palette.BackClean.Strong, "Restarted after the cut-off, nothing pending, checks clean"),
+                ("BACK", snap.Rows.Count(r => r.Status.IsClean), Palette.BackClean.Strong, L.T("Restarted after the cut-off, nothing pending, checks clean")),
                 ("FLAGGED", snap.Rows.Count(r => r.Status.State == ServerState.Back && !r.Status.IsClean), Palette.BackFlagged.Strong,
-                    "Restarted, but a restart is pending again, an update failed or a service is not running"),
-                ("BOOTING", snap.Rows.Count(r => r.Status.State == ServerState.Booting), Palette.Booting.Strong, "Answers ping, WMI not ready yet"),
-                ("DOWN", snap.Rows.Count(r => r.Status.State == ServerState.Down), Palette.Down.Strong, "No ping"),
+                    L.T("Restarted, but a restart is pending again, an update failed or a service is not running")),
+                ("BOOTING", snap.Rows.Count(r => r.Status.State == ServerState.Booting), Palette.Booting.Strong, L.T("Answers ping, WMI not ready yet")),
+                ("DOWN", snap.Rows.Count(r => r.Status.State == ServerState.Down), Palette.Down.Strong, L.T("No ping")),
                 ("INSTALLING", snap.Rows.Count(r => r.Status.State == ServerState.Installing), Palette.Installing.Strong,
-                    "Not restarted yet, TiWorker running: updates being installed, a restart may be under way"),
+                    L.T("Not restarted yet, TiWorker running: updates being installed, a restart may be under way")),
                 ("PENDING", snap.Rows.Count(r => r.Status.State == ServerState.RestartPending), Palette.RestartPending.Strong,
-                    "Not restarted yet, a restart is pending (CBS packages or Windows Update)"),
+                    L.T("Not restarted yet, a restart is pending (CBS packages or Windows Update)")),
                 ("NOT PENDING", snap.Rows.Count(r => r.Status.State == ServerState.NoRestartPending), Palette.NoRestartPending.Strong,
-                    "Not restarted yet, no restart pending (it can still be restarted)"),
-                ("checking", snap.Rows.Count(r => r.Status.State == ServerState.Checking), Palette.Checking.Strong, "No answer yet"),
+                    L.T("Not restarted yet, no restart pending (it can still be restarted)")),
+                ("checking", snap.Rows.Count(r => r.Status.State == ServerState.Checking), Palette.Checking.Strong, L.T("No answer yet")),
             };
             if (chips.Controls.Count == 0)
                 foreach (var c in counts)
@@ -537,7 +566,7 @@ namespace WUGrid.Gui
                 chip.BackColor = count > 0 ? strong : Palette.Header;
                 chip.ForeColor = count > 0 ? Color.White : Palette.MutedText;
             }
-            clock.Text = $"{snap.Now:HH:mm:ss}    since {snap.Since:dd-MM HH:mm}    {snap.Rows.Count} servers";
+            clock.Text = L.F("{0:HH:mm:ss}    since {1:dd-MM HH:mm}    {2} servers", snap.Now, snap.Since, snap.Rows.Count);
         }
 
         void AddEvent(RoundEvent e)

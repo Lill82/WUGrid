@@ -47,6 +47,8 @@ the targeting pack. The legacy scripts are Windows PowerShell 5.1 — see the 5.
   WMI over DCOM), `Verification/` (records +
   `VerificationBuilder`, pure), `Reports/` (HTML/CSV), `Errors/` (catalog), `Restart/` (guard, action, audit log),
   `ServerList`, `Demo/` (scripted round).
+- Languages: the GUI's own text goes through `L.T` / `L.F` (`src/WUGrid.Gui/L.cs`) with Catalan (default) and Spanish in
+  `Strings.ca.tsv` / `Strings.es.tsv`; add every new GUI text to both (`TranslationsTests` checks). Core text stays English.
 - `src/WUGrid.Cli` — `wugrid-cli.exe` (`watch`: console grid / `--headless` events, `--state` JSON, `--events` JSONL;
   `check`, `verify`, `error`). `Reports/ConsoleGrid` (pure) lays out its frame, `Reports/RoundJson` writes its files. `src/WUGrid.Gui` — `WUGrid.exe`: live grid + event pane,
   Servers…, Reboot…, Report…, Error codes…, server details (double-click), right-click Reboot… (Reboot window with that server ticked); `--demo` plays the simulated round.
@@ -54,9 +56,11 @@ the targeting pack. The legacy scripts are Windows PowerShell 5.1 — see the 5.
   file by hand; WUGrid's own explanations go in `error-codes.wugrid.tsv`).
 - `assets/WUGrid.ico` — app icon for both exes and the windows, drawn by `tools/New-AppIcon.ps1` (edit the script, not
   the .ico).
-- `site/` — project page (static HTML, deployed by `.github/workflows/pages.yml`). Its pictures and
-  `sample-report.html` come from `tools/New-Screenshots.ps1` (`WUGrid.exe --demo --screenshots DIR`: the demo round
-  only, windows off-screen, Reboot window in preview that sends nothing). Never put a picture of a real round there.
+- `site/` — project page (static HTML, deployed by `.github/workflows/pages.yml`) in three languages kept in step:
+  `index.html` Catalan (default), `es/`, `en/`, one `style.css`. Its pictures (`img/<lang>/` for the GUI, `img/` for the
+  console and the report) and `sample-report.html` come from `tools/New-Screenshots.ps1` (`WUGrid.exe --demo --lang L
+  --screenshots DIR`: the demo round only, windows off-screen, Reboot window in preview that sends nothing). Never put
+  a picture of a real round there.
 - `tests/WUGrid.Core.Tests` — xUnit.
 - `legacy/powershell/` — the original grid, follower and one-shot check; reference behaviour for M1/M2 parity.
 - `docs/` — `DESIGN.md`, `FIELD-NOTES.md`.
@@ -68,8 +72,8 @@ the targeting pack. The legacy scripts are Windows PowerShell 5.1 — see the 5.
 - Releases on GitHub Releases since v0.9.0 (2026-10-18). Per release: `tools\Publish-Build.ps1`, then
   `WUGrid-<version>.zip` (a `WUGrid-<version>\` folder: both exes and their `.config`, `WUGrid.Core.dll`, `LICENSE`,
   `THIRD-PARTY-NOTICES.md`, `README.md`; no PDBs), annotated tag `v<version>`, `gh release create` with the SHA-256 in
-  the notes. Unsigned. The page's Download buttons point at `/releases/latest`: bump the badge in `site/index.html` and
-  regenerate the pictures (`tools\New-Screenshots.ps1`) for each release.
+  the notes. Unsigned. The page's Download buttons point at `/releases/latest`: bump the badge in the three pages
+  (`site/index.html`, `site/es/`, `site/en/`) and regenerate the pictures (`tools\New-Screenshots.ps1`) for each release.
 - M1 built: live grid (WMI/DCOM probe, thread per server), Servers window with access check, asterisk footnote,
   error catalog, demo, polling interval, `wugrid-cli watch` (console grid, `--headless` events, live list reload,
   state JSON, events JSONL). All-clean waits for each server's checks (`ServerRow.ChecksDone`). Still open: the parity

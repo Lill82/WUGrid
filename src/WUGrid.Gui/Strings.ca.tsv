@@ -1,0 +1,192 @@
+# WUGrid windows in Catalan: English text <TAB> translation, one per line (L.cs; TranslationsTests keeps it complete).
+# What Core writes (states, notes, events, restart reasons, the error catalog) stays English and is not here.
+
+# Main window
+ — demo round	 — ronda de demostració
+Pause	Pausa
+Resume	Continua
+Restart demo	Reinicia la demo
+Speed	Velocitat
+Servers…	Servidors…
+Add or remove servers; each one added is checked once (read-only)	Afegeix o treu servidors; cada un que s'afegeix es comprova una vegada (només lectura)
+Reboot…	Reinicia…
+Pick servers to restart (never forced, only when no update work is running)	Tria servidors per reiniciar (mai forçat, només quan no hi ha feina d'actualització en curs)
+How often each server is pinged and read over WMI	Cada quant es fa ping a cada servidor i es llegeix per WMI
+Restarted after	Reiniciat després de
+Round cut-off: a server counts as restarted when it booted after this	Tall de la ronda: un servidor compta com a reiniciat si ha arrencat després d'aquesta hora
+Poll every	Consulta cada
+Expected…	Previstos…
+Services you expect not to run after the restart (a role being removed): shown with the reason, not flagged. Nothing is sent.	Serveis que preveus que no s'executin després del reinici (un rol que s'està traient): es mostren amb el motiu, sense avís. No s'envia res.
+Error codes…	Codis d'error…
+Explain a CBS, Windows Update, WMI or Win32 error code	Explica un codi d'error de CBS, Windows Update, WMI o Win32
+Report…	Informe…
+Save the round as an HTML page (opened after saving) or a CSV file	Desa la ronda com a pàgina HTML (s'obre en desar-la) o com a fitxer CSV
+Round time runs faster than real time	El temps de la ronda passa més de pressa que el real
+Read-only, except restarts you send with Reboot…	Només lectura, llevat dels reinicis que enviïs amb Reinicia…
+Logging	Registre
+Open the log folder	Obre la carpeta del registre
+Activity log off: tick to keep what WUGrid does and every error, to look at afterwards	Registre d'activitat desactivat: marca'l per desar el que fa WUGrid i cada error, per consultar-ho després
+Activity log on: {0}\nChanges and errors only, not every poll; kept {1} days	Registre d'activitat activat: {0}\nNomés canvis i errors, no cada consulta; es desa {1} dies
+Right-click to open the log folder	Clic dret per obrir la carpeta del registre
+The log is on for this run, but the choice could not be saved to {0}:\n{1}	El registre està activat en aquesta execució, però l'elecció no s'ha pogut desar a {0}:\n{1}
+The log is off for this run, but the choice could not be saved to {0}:\n{1}	El registre està desactivat en aquesta execució, però l'elecció no s'ha pogut desar a {0}:\n{1}
+Could not open {0}:\n{1}	No s'ha pogut obrir {0}:\n{1}
+Language of the windows	Idioma de les finestres
+WUGrid will be in this language the next time it starts.	WUGrid estarà en aquest idioma la propera vegada que s'iniciï.
+The language could not be saved to {0}:\n{1}	L'idioma no s'ha pogut desar a {0}:\n{1}
+Could not save the server list to {0}:\n{1}	No s'ha pogut desar la llista de servidors a {0}:\n{1}
+Reboot {0}…	Reinicia {0}…
+Reboot {0}: no — {1}	Reinicia {0}: no — {1}
+Details…	Detalls…
+Could not save the expected stops to {0}:\n{1}	No s'han pogut desar les aturades previstes a {0}:\n{1}
+Save round report	Desa l'informe de la ronda
+HTML page (*.html)|*.html|CSV for Excel (*.csv)|*.csv	Pàgina HTML (*.html)|*.html|CSV per a Excel (*.csv)|*.csv
+Could not save the report:\n{0}	No s'ha pogut desar l'informe:\n{0}
+Server	Servidor
+Ping	Ping
+State	Estat
+Last boot	Arrencada
+Up / Down	Temps
+Build	Compilació
+Note	Nota
+Time	Hora
+Event	Esdeveniment
+Demo round: simulated, no servers are contacted.	Ronda de demostració: simulada, no es contacta amb cap servidor.
+No servers yet: click Servers… to add some.	Encara no hi ha servidors: fes clic a Servidors… per afegir-ne.
+{0} servers, polled every {1:0} s over ICMP and DCOM/WMI. Double-click a row for its update results, restarts and services.	{0} servidors, consultats cada {1:0} s per ICMP i DCOM/WMI. Doble clic en una fila per veure'n les actualitzacions, els reinicis i els serveis.
+up	sí
+yes	sí
+What to do: {0}	Què cal fer: {0}
+Restarted after the cut-off, nothing pending, checks clean	Reiniciat després del tall, res pendent, comprovacions correctes
+Restarted, but a restart is pending again, an update failed or a service is not running	Reiniciat, però torna a haver-hi un reinici pendent, ha fallat una actualització o un servei no s'executa
+Answers ping, WMI not ready yet	Respon al ping, WMI encara no està a punt
+No ping	Sense ping
+Not restarted yet, TiWorker running: updates being installed, a restart may be under way	Encara sense reiniciar, TiWorker en marxa: s'estan instal·lant actualitzacions, pot haver-hi un reinici en curs
+Not restarted yet, a restart is pending (CBS packages or Windows Update)	Encara sense reiniciar, hi ha un reinici pendent (paquets CBS o Windows Update)
+Not restarted yet, no restart pending (it can still be restarted)	Encara sense reiniciar, sense reinici pendent (es pot reiniciar igualment)
+No answer yet	Encara sense resposta
+{0:HH:mm:ss}    since {1:dd-MM HH:mm}    {2} servers	{0:HH:mm:ss}    des de {1:dd-MM HH:mm}    {2} servidors
+
+# Program
+--since: not a date/time: {0}	--since: no és una data/hora: {0}
+--screenshots works with --demo only: it never shows real servers.	--screenshots només funciona amb --demo: mai no mostra servidors reals.
+Something went wrong in WUGrid:\n{0}	Alguna cosa ha anat malament a WUGrid:\n{0}
+The details are in the activity log:\n{0}	Els detalls són al registre d'activitat:\n{0}
+Turn on the activity log (status bar) to keep the details if it happens again.	Activa el registre d'activitat (barra d'estat) per desar els detalls si torna a passar.
+
+# Reboot window
+Reboot servers	Reinicia servidors
+Tick the servers to restart. Greyed ones cannot be restarted now without cutting off update work; the reason is shown.	Marca els servidors que vols reiniciar. Els atenuats no es poden reiniciar ara sense tallar feina d'actualització; se'n mostra el motiu.
+Can restart now?	Es pot reiniciar ara?
+Result	Resultat
+none	cap
+Warning before restart	Avís abans del reinici
+Comment	Comentari
+Not forced: running programs can delay or cancel the restart, and Windows refuses it while a user is signed in, even disconnected. Until it runs it can be aborted on the server with shutdown /a. Each server is checked again just before: one that started update work or has a user signed in is skipped. Everything is recorded in {0}.	Sense forçar: els programes en marxa poden endarrerir o cancel·lar el reinici, i Windows el rebutja mentre hi hagi un usuari amb la sessió iniciada, encara que estigui desconnectada. Fins que s'executa es pot anul·lar al servidor amb shutdown /a. Cada servidor es torna a comprovar just abans: s'omet el que hagi començat feina d'actualització o tingui un usuari amb la sessió iniciada. Tot queda registrat a {0}.
+Tick all with a restart pending	Marca tots els que tenen un reinici pendent
+Tick all possible	Marca tots els possibles
+Clear	Desmarca-ho tot
+Close	Tanca
+yes — {0}	sí — {0}
+no — {0}	no — {0}
+unticked: {0}	desmarcat: {0}
+Restart 1 server…	Reinicia 1 servidor…
+Restart {0} servers…	Reinicia {0} servidors…
+Restart this server now?	Vols reiniciar aquest servidor ara?
+Restart these {0} servers now?	Vols reiniciar aquests {0} servidors ara?
+Not forced; {0} s warning.	Sense forçar; avís de {0} s.
+Not forced; no warning.	Sense forçar; sense avís.
+Each server is checked again just before; one that started update work or has a user signed in is skipped.	Cada servidor es torna a comprovar just abans; s'omet el que hagi començat feina d'actualització o tingui un usuari amb la sessió iniciada.
+Check only	Només comprova
+Restart…	Reinicia…
+checking…	comprovant…
+sending…	enviant…
+requested {0:HH:mm:ss}: {1}	sol·licitat {0:HH:mm:ss}: {1}
+would restart: {0}	es reiniciaria: {0}
+skipped: {0}	omès: {0}
+failed: {0}	ha fallat: {0}
+
+# Servers window
+Servers	Servidors
+Add servers: names separated by commas, spaces or lines (paste a list here). Each one is checked once, read-only.	Afegeix servidors: noms separats per comes, espais o línies (enganxa-hi una llista). Cada un es comprova una vegada, en només lectura.
+Add	Afegeix
+Import…	Importa…
+Remove	Treu
+Check again	Torna a comprovar
+OK	D'acord
+Cancel	Cancel·la
+Text files (*.txt)|*.txt|All files (*.*)|*.*	Fitxers de text (*.txt)|*.txt|Tots els fitxers (*.*)|*.*
+Import server list	Importa una llista de servidors
+checked {0:HH:mm:ss}	comprovat {0:HH:mm:ss}
+Ping is blocked but WMI answers: the grid uses ping for up/down, so this server will show as DOWN.	El ping està bloquejat però WMI respon: la graella fa servir el ping per saber si està actiu, així que aquest servidor es veurà com a DOWN.
+ok	correcte
+failed	ha fallat
+skipped	omès
+{0} servers	{0} servidors
+{0} checking	{0} comprovant
+{0} with problems	{0} amb problemes
+
+# Expected stops window
+Expected service stops	Aturades de servei previstes
+Services not running right now. Tick the ones you expect to stay stopped (a role being removed, an application retired), say why and mark them: the server is no longer flagged for them and the stop stays visible with your reason. Nothing is sent to any server.	Serveis que no s'estan executant ara. Marca els que preveus que continuïn aturats (un rol que s'està traient, una aplicació retirada), digues per què i marca'ls com a previstos: el servidor deixa de tenir avís per ells i l'aturada continua visible amb el teu motiu. No s'envia res a cap servidor.
+Service	Servei
+Display name	Nom visible
+Expected?	Prevista?
+no service is stopped in the round right now	ara no hi ha cap servei aturat a la ronda
+On every server	A tots els servidors
+Why	Motiu
+Mark ticked as expected	Marca els seleccionats com a previstos
+Expected stops in force (select and Remove, or Delete, to take one back)	Aturades previstes vigents (selecciona i Treu, o Supr, per retirar-ne una)
+1 expected stop	1 aturada prevista
+{0} expected stops	{0} aturades previstes
+
+# Error codes window
+Error codes	Codis d'error
+Code (0x800F0840, 800F0840, -2146498496) or words. {0} CBS, Windows Update, WMI and Win32 codes.	Codi (0x800F0840, 800F0840, -2146498496) o paraules (les descripcions són en anglès). {0} codis de CBS, Windows Update, WMI i Win32.
+Code	Codi
+Name	Nom
+Family	Família
+Description	Descripció
+No match.	Cap coincidència.
+(no name)	(sense nom)
+Source: {0}	Font: {0}
+
+# Server details window
+Earlier boots	Arrencades anteriors
+This server is no longer in the list.	Aquest servidor ja no és a la llista.
+clean	correcte
+flagged	amb avisos
+Last boot {0:dd-MM-yyyy HH:mm}	Darrera arrencada {0:dd-MM-yyyy HH:mm}
+down {0}	caigut {0}
+up {0}	actiu {0}
+Build {0}	Compilació {0}
+(before → now)	(abans → ara)
+Why WMI does not answer	Per què WMI no respon
+Checking update results, restarts and services…	Comprovant actualitzacions, reinicis i serveis…
+Updates since the cut-off ({0})	Actualitzacions des del tall ({0})
+No Windows Update installs logged.	No hi ha instal·lacions de Windows Update registrades.
+Restarts ({0}) and boots ({1})	Reinicis ({0}) i arrencades ({1})
+Booted {0}	Ha arrencat {0}
+An unexpected shutdown was logged (event 6008).	Es va registrar una aturada inesperada (esdeveniment 6008).
+Services	Serveis
+Checked once the server has been up {0} min (delayed-start services).	Es comprova quan el servidor porta {0} min actiu (serveis d'inici retardat).
+Every service that ran before the restart is running ({0} of {1}).	Tots els serveis que s'executaven abans del reinici s'estan executant ({0} de {1}).
+Every other service that ran before the restart is running ({0} of {1}).	Tots els altres serveis que s'executaven abans del reinici s'estan executant ({0} de {1}).
+Every Automatic service is running.	Tots els serveis automàtics s'estan executant.
+Every other Automatic service is running.	Tots els altres serveis automàtics s'estan executant.
+Ran before the restart, not running now ({0} of {1}):	S'executaven abans del reinici i ara no ({0} de {1}):
+Automatic, not running (no baseline from before the restart):	Automàtics que no s'executen (no hi ha línia de base d'abans del reinici):
+Not running, expected ({0}): shown, not flagged.	No s'executen, previstos ({0}): es mostren, sense avís.
+Marked for deletion before the restart, removed as planned ({0}):	Marcats per eliminar abans del reinici, eliminats tal com estava previst ({0}):
+Checked {0:HH:mm:ss}	Comprovat {0:HH:mm:ss}
+settled, no more checks for this boot	estable, no hi ha més comprovacions per a aquesta arrencada
+checked again every 2 min until it settles	es torna a comprovar cada 2 min fins que s'estabilitzi
+Before the restart	Abans del reinici
+Baseline taken {0:HH:mm}: build {1}, {2} running Automatic services to compare after the restart.	Línia de base presa a les {0:HH:mm}: compilació {1}, {2} serveis automàtics en execució per comparar després del reinici.
+Baseline not taken yet.	Encara no s'ha pres la línia de base.
+Marked for deletion, gone at the next boot and not expected back ({0}): {1}	Marcats per eliminar, desapareixen a la propera arrencada i no s'espera que tornin ({0}): {1}
+Last check failed: {0}	La darrera comprovació ha fallat: {0}
+Earlier boots reads the System log back {0} days for whether these services failed at those boots too: minutes on a large log, in the background.	Arrencades anteriors llegeix el registre System dels darrers {0} dies per veure si aquests serveis també van fallar en aquelles arrencades: minuts en un registre gran, en segon pla.
+Reading earlier boots: the System log back to {0:dd-MM-yyyy}, minutes on a large log…	Llegint arrencades anteriors: el registre System fins al {0:dd-MM-yyyy}, minuts en un registre gran…
+Reading earlier boots failed at {0:HH:mm}: {1}	La lectura d'arrencades anteriors va fallar a les {0:HH:mm}: {1}
+Earlier boots read at {0:HH:mm}: the System log back to {1:dd-MM-yyyy}.	Arrencades anteriors llegides a les {0:HH:mm}: el registre System fins al {1:dd-MM-yyyy}.

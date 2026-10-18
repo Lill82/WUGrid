@@ -22,7 +22,7 @@ namespace WUGrid.Gui
         public ErrorLookupForm(int? code = null)
         {
             scale = DeviceDpi / 96f;
-            Text = "Error codes";
+            Text = L.T("Error codes");
             Icon = AppInfo.Icon;
             Font = new Font("Segoe UI", 9.75f);
             ClientSize = new Size(Px(900), Px(620));
@@ -36,7 +36,7 @@ namespace WUGrid.Gui
             {
                 AutoSize = true,
                 ForeColor = Palette.MutedText,
-                Text = $"Code (0x800F0840, 800F0840, -2146498496) or words. {ErrorCatalog.All.Count} CBS, Windows Update, WMI and Win32 codes.",
+                Text = L.F("Code (0x800F0840, 800F0840, -2146498496) or words. {0} CBS, Windows Update, WMI and Win32 codes.", ErrorCatalog.All.Count),
             });
             query.Dock = DockStyle.Fill;
             query.TextChanged += (s, e) => Search();
@@ -47,10 +47,10 @@ namespace WUGrid.Gui
             results.FullRowSelect = true;
             results.HideSelection = false;
             results.BorderStyle = BorderStyle.None;
-            results.Columns.Add("Code", Px(100));
-            results.Columns.Add("Name", Px(320));
-            results.Columns.Add("Family", Px(120));
-            results.Columns.Add("Description", Px(600));
+            results.Columns.Add(L.T("Code"), Px(100));
+            results.Columns.Add(L.T("Name"), Px(320));
+            results.Columns.Add(L.T("Family"), Px(120));
+            results.Columns.Add(L.T("Description"), Px(600));
             results.SelectedIndexChanged += (s, e) => ShowDetails();
             var listHost = new Panel { Dock = DockStyle.Fill, Padding = new Padding(Px(10), Px(4), Px(10), 0) };
             listHost.Controls.Add(results);
@@ -100,14 +100,14 @@ namespace WUGrid.Gui
         {
             links.Controls.Clear();
             var e = results.SelectedItems.Count == 1 ? (ErrorEntry)results.SelectedItems[0].Tag : null;
-            if (e == null) { details.Text = results.Items.Count == 0 ? "No match." : ""; return; }
-            details.Text = $"{e.Hex}   {(e.Name == "" ? "(no name)" : e.Name)}   [{e.Family}]{Environment.NewLine}{Environment.NewLine}{e.Description}"
-                           + (e.Mitigation == "" ? "" : $"{Environment.NewLine}{Environment.NewLine}What to do: {e.Mitigation}");
+            if (e == null) { details.Text = results.Items.Count == 0 ? L.T("No match.") : ""; return; }
+            details.Text = $"{e.Hex}   {(e.Name == "" ? L.T("(no name)") : e.Name)}   [{e.Family}]{Environment.NewLine}{Environment.NewLine}{e.Description}"
+                           + (e.Mitigation == "" ? "" : Environment.NewLine + Environment.NewLine + L.F("What to do: {0}", e.Mitigation));
             foreach (var key in e.Source.Split(','))
             {
                 if (!ErrorCatalog.Sources.TryGetValue(key, out var src)) continue;
-                if (src.Url == null) { links.Controls.Add(new Label { Text = "Source: " + src.Title, AutoSize = true, ForeColor = Palette.MutedText }); continue; }
-                var link = new LinkLabel { Text = "Source: " + src.Title, AutoSize = true, Tag = src.Url };
+                if (src.Url == null) { links.Controls.Add(new Label { Text = L.F("Source: {0}", src.Title), AutoSize = true, ForeColor = Palette.MutedText }); continue; }
+                var link = new LinkLabel { Text = L.F("Source: {0}", src.Title), AutoSize = true, Tag = src.Url };
                 link.LinkClicked += (s, a) => Process.Start(new ProcessStartInfo((string)((Control)s).Tag) { UseShellExecute = true });
                 links.Controls.Add(link);
             }

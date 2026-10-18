@@ -9,6 +9,9 @@
   <ItemGroup>
     <!-- The same icon for the windows' title bars (tools\New-AppIcon.ps1 draws it) -->
     <EmbeddedResource Include="..\..\assets\WUGrid.ico" LogicalName="WUGrid.ico" />
+    <!-- The windows in Spanish and Catalan (L.cs), keyed by the English text; in the exe, not
+         ca / es satellite folders (WithCulture) -->
+    <EmbeddedResource Include="Strings.*.tsv" LogicalName="WUGrid.%(Filename)%(Extension)" WithCulture="false" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\WUGrid.Core\WUGrid.Core.csproj" />

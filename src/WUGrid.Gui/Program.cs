@@ -19,6 +19,8 @@ namespace WUGrid.Gui
         /// WUGrid.exe --demo --screenshots DIR   saves the project page's screenshots of the demo, then exits
         /// WUGrid.exe --log [--log-dir DIR]  keep an activity log this run (default %APPDATA%\WUGrid\logs; the status bar
         ///                                  turns it on and off and remembers the choice)
+        /// WUGrid.exe --lang es             windows in Spanish this run (en, es, ca; default: the status bar's choice,
+        ///                                  else Catalan)
         /// </summary>
         [STAThread]
         static void Main(string[] args)
@@ -28,6 +30,9 @@ namespace WUGrid.Gui
             ActivityLog.CatchUnhandled();
             Application.ThreadException += (s, e) => Unexpected(e.Exception);
             commandLine = string.Join(" ", args);
+            // Before anything is shown; the project page's screenshots are in the --lang asked for, English without one
+            var lang = Array.FindIndex(args, a => a.Equals("--lang", StringComparison.OrdinalIgnoreCase)) is var li && li >= 0 && li + 1 < args.Length ? args[li + 1] : null;
+            L.Start(lang ?? (Array.Exists(args, a => a.Equals("--screenshots", StringComparison.OrdinalIgnoreCase)) ? "en" : null));
 
             var demo = false;
             var log = Settings.IsOn(Settings.Get(ActivityLog.SettingName));
@@ -39,6 +44,7 @@ namespace WUGrid.Gui
             {
                 var a = args[i];
                 if (a.Equals("--demo", StringComparison.OrdinalIgnoreCase)) demo = true;
+                else if (a.Equals("--lang", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length) i++;   // read above
                 else if (a.Equals("--log", StringComparison.OrdinalIgnoreCase)) log = true;
                 else if (a.Equals("--log-dir", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
                 {
@@ -51,7 +57,7 @@ namespace WUGrid.Gui
                 {
                     if (!DateTime.TryParse(args[++i], CultureInfo.CurrentCulture, DateTimeStyles.AllowWhiteSpaces, out since))
                     {
-                        MessageBox.Show($"--since: not a date/time: {args[i]}", "WUGrid", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show(L.F("--since: not a date/time: {0}", args[i]), "WUGrid", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         return;
                     }
                 }
@@ -71,7 +77,7 @@ namespace WUGrid.Gui
             }
             if (screenshots != null)
             {
-                MessageBox.Show("--screenshots works with --demo only: it never shows real servers.", "WUGrid", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(L.T("--screenshots works with --demo only: it never shows real servers."), "WUGrid", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
             using (var round = new LiveRound(since, TimeSpan.FromSeconds(5)))
@@ -101,8 +107,8 @@ namespace WUGrid.Gui
         {
             ActivityLog.Error(null, "unexpected error in the window", ex);
             var log = ActivityLog.Current;
-            MessageBox.Show($"Something went wrong in WUGrid:\n{ex.Message}\n\n" +
-                            (log != null ? $"The details are in the activity log:\n{log.File}" : "Turn on the activity log (status bar) to keep the details if it happens again."),
+            MessageBox.Show(L.F("Something went wrong in WUGrid:\n{0}", ex.Message) + "\n\n" +
+                            (log != null ? L.F("The details are in the activity log:\n{0}", log.File) : L.T("Turn on the activity log (status bar) to keep the details if it happens again.")),
                             "WUGrid", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }

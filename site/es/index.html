@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WUGrid — rondas de Windows Update para servidores</title>
+<meta name="description" content="WUGrid sigue, reinicia y verifica una ronda de actualizaciones de Windows Server, en directo y sin agentes, por WMI/DCOM. Nacido de una ronda real de 54 servidores.">
+<link rel="icon" type="image/png" href="../img/icon.png">
+<link rel="stylesheet" href="../style.css">
+<link rel="alternate" hreflang="ca" href="../">
+<link rel="alternate" hreflang="es" href="./">
+<link rel="alternate" hreflang="en" href="../en/">
+<link rel="alternate" hreflang="x-default" href="../">
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#"><img src="../img/icon.png" alt="" width="28" height="28">WUGrid</a>
+    <nav>
+      <a href="#watch">Seguimiento</a>
+      <a href="#verify">Verificación</a>
+      <a href="#restart">Reinicio</a>
+      <a href="#console">Consola</a>
+      <a href="#start">Empezar</a>
+      <a href="https://github.com/Lill82/WUGrid">GitHub</a>
+    </nav>
+    <div class="langs" aria-label="Idioma">
+      <a href="../" hreflang="ca" lang="ca">Català</a>
+      <a href="./" hreflang="es" lang="es" aria-current="page">Español</a>
+      <a href="../en/" hreflang="en" lang="en">English</a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <div class="badge"><b>En desarrollo</b> · v0.10.0 · solo lectura salvo que reinicies</div>
+      <h1>Sigue cada servidor durante una ronda de reinicios de Windows&nbsp;Update</h1>
+      <p class="lead">WUGrid muestra el estado de cada servidor cada pocos segundos, reinicia los que elijas sin
+        forzarlos y comprueba lo que un reinicio en verde puede esconder. Funciona sin agentes por WMI/DCOM, así que va
+        donde WinRM está cerrado y no instala nada en los servidores.</p>
+      <div class="buttons">
+        <a class="btn primary" href="https://github.com/Lill82/WUGrid/releases/latest">Descargar</a>
+        <a class="btn" href="#start">Empezar</a>
+        <a class="btn" href="https://github.com/Lill82/WUGrid">Ver en GitHub</a>
+      </div>
+      <figure class="shot">
+        <a href="../img/es/grid.png"><img src="../img/es/grid.png" width="1182" height="792"
+          alt="La ventana de WUGrid durante una ronda de demostración: catorce servidores coloreados según su estado (de vuelta, con avisos, arrancando, caído, instalando, reinicio pendiente), los recuentos arriba y los eventos de la ronda debajo."></a>
+      </figure>
+      <p class="caption">La ronda de demostración, a los 26 minutos. Servidores simulados: no se contacta con nada.</p>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <div class="pillars">
+      <div class="pillar">
+        <div class="icon" style="background: var(--installing)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg></div>
+        <h3>Sin agentes</h3>
+        <p>ICMP y WMI por DCOM, con una sola conexión reutilizada por servidor. Solo usa lo que tiene cualquier Windows
+          Server: ni WinRM, ni agentes, ni ConfigMgr.</p>
+      </div>
+      <div class="pillar">
+        <div class="icon" style="background: var(--back)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></div>
+        <h3>Observar por defecto</h3>
+        <p>Seguir y verificar nunca cambian ningún servidor. Un reinicio es una acción con nombre: ves el plan, lo
+          confirmas, cada servidor se vuelve a comprobar y el resultado queda registrado.</p>
+      </div>
+      <div class="pillar">
+        <div class="icon" style="background: var(--pending)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+        <h3>Reglas de una ronda real</h3>
+        <p>Hecho a partir de una ronda de 54 servidores. Los reinicios encadenados, un minuto de “acceso denegado”
+          mientras un servidor arranca y la limpieza de componentes son habituales y se muestran como tales. Los fallos
+          reales se marcan.</p>
+      </div>
+    </div>
+  </div>
+
+  <section class="feature" id="watch">
+    <div class="wrap row">
+      <div class="text">
+        <div class="eyebrow">Seguimiento</div>
+        <h2>Todos los servidores, de un vistazo</h2>
+        <p>Cada servidor tiene su propio hilo, que le hace ping y lee su último arranque, los procesos de mantenimiento y
+          las claves de reinicio de CBS y de Windows Update. Una hora de <b>corte</b> decide qué cuenta como
+          reiniciado.</p>
+        <dl class="states">
+          <dt><span class="chip c-pending">RESTART PENDING</span></dt><dd>aún sin reiniciar; paquetes CBS o Windows Update esperando</dd>
+          <dt><span class="chip c-notpending">NO RESTART PENDING</span></dt><dd>aún sin reiniciar; nada pendiente</dd>
+          <dt><span class="chip c-installing">INSTALLING</span></dt><dd>mantenimiento antes del apagado</dd>
+          <dt><span class="chip c-down">DOWN</span></dt><dd>sin ping, con el tiempo que lleva caído</dd>
+          <dt><span class="chip c-booting">BOOTING</span></dt><dd>responde al ping, WMI aún no está listo</dd>
+          <dt><span class="chip c-back">BACK</span></dt><dd>reiniciado después del corte, comprobaciones correctas</dd>
+          <dt><span class="chip c-flagged">BACK · PENDING</span></dt><dd>reiniciado, pero vuelve a haber un reinicio pendiente</dd>
+          <dt><span class="chip c-flagged">BACK</span></dt><dd>reiniciado, pero ha fallado una actualización o un servicio no se ejecuta</dd>
+        </dl>
+        <p class="note" style="margin-top:16px">Hay alarmas para un servidor caído 15 minutos o aún pendiente 20 minutos
+          después de arrancar, y una línea cuando todos los servidores han vuelto limpios con las comprobaciones hechas.
+          Los nombres de los estados salen en inglés, igual que en la ventana.</p>
+      </div>
+      <figure class="shot">
+        <a href="../img/es/grid-early.png"><img src="../img/es/grid-early.png" width="1182" height="792" loading="lazy"
+          alt="La cuadrícula a los 12 minutos de la ronda de demostración: servidores instalando, caídos, arrancando, de vuelta, con un reinicio pendiente o sin él."></a>
+        <figcaption>A los 12 minutos: media ronda aún instalando, caída o arrancando.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="feature" id="verify">
+    <div class="wrap row flip">
+      <div class="text">
+        <div class="eyebrow">Verificación</div>
+        <h2>Detecta los reinicios que solo parecen verdes</h2>
+        <p>Cuando se acumularon varios meses de actualizaciones acumulativas preparadas una encima de otra, solo se
+          aplicó la más antigua. Los servidores volvieron aparentemente limpios, pero con un nivel de parches antiguo.
+          Cuando un servidor vuelve, WUGrid lee su registro System y sus servicios (solo lectura) y marca:</p>
+        <ul>
+          <li>una <b>actualización que ha fallado</b> (evento 20 de Windows Update), con el error explicado;</li>
+          <li>un <b>servicio que no se ejecuta</b> y que se ejecutaba antes del reinicio, quién cambió su tipo de inicio
+            y <b>por qué no arrancó</b> — tiempo de espera agotado, un servicio del que depende, su cuenta — y si ya
+            había fallado en los arranques anteriores; una parada que ya conoces (un rol que se está quitando) se puede
+            marcar como <b>prevista</b>: se muestra con el motivo, sin aviso;</li>
+          <li>quién lo reinició y por qué (evento 1074), cada arranque y la compilación con la que arrancó.</li>
+        </ul>
+        <p>Doble clic en una fila para ver los detalles. La columna Compilación muestra la de antes y la de ahora.</p>
+      </div>
+      <figure class="shot">
+        <a href="../img/es/details.png"><img src="../img/es/details.png" width="822" height="652" loading="lazy"
+          alt="Detalles de SQL01: de vuelta pero con avisos, la actualización acumulativa 2026-09 ha fallado con 0x800F0840 CBS_E_SESSION_CORRUPT, el error explicado con qué hacer, el reinicio hecho por un administrador, un arranque, todos los servicios en marcha."></a>
+      </figure>
+    </div>
+  </section>
+
+  <section class="feature" id="restart">
+    <div class="wrap row">
+      <div class="text">
+        <div class="eyebrow">Reinicio</div>
+        <h2>Reinicios que nunca fuerzan</h2>
+        <ul>
+          <li>Solo se pueden marcar los servidores <b>sin trabajo de actualización en curso</b>, y cada uno se <b>vuelve a
+            comprobar</b> justo antes de enviar el reinicio.</li>
+          <li><b>Nunca forzado</b> (<code>Win32ShutdownTracker</code>, reinicio sin forzar): los programas en marcha
+            pueden retrasarlo o cancelarlo.</li>
+          <li>Se omite el servidor que tenga un <b>usuario con la sesión iniciada</b>, y se dice quién: Windows rechaza
+            un reinicio sin forzar mientras haya alguien con la sesión iniciada.</li>
+          <li>Un aviso opcional, durante el cual <code>shutdown /a</code> en el servidor lo anula.</li>
+          <li><b>Solo comprobar</b> lo hace todo salvo la llamada de reinicio.</li>
+          <li>Cada petición y cada resultado van a un <b>registro de auditoría</b> en el que solo se añade, y tu
+            comentario aparece en el evento 1074 del servidor.</li>
+        </ul>
+      </div>
+      <figure class="shot">
+        <a href="../img/es/reboot.png"><img src="../img/es/reboot.png" width="982" height="632" loading="lazy"
+          alt="La ventana Reiniciar servidores: cada servidor con si se puede reiniciar ahora y por qué no (limpieza de componentes, caído, arrancando, instalando actualizaciones), dos servidores con un reinicio pendiente marcados, las opciones de aviso y de comentario y los botones Solo comprobar y Reiniciar."></a>
+      </figure>
+    </div>
+  </section>
+
+  <section class="feature" id="report">
+    <div class="wrap row flip">
+      <div class="text">
+        <div class="eyebrow">Informe</div>
+        <h2>La ronda, en una página</h2>
+        <p><b>Informe…</b> guarda la ronda como una página HTML autónoma, con un resumen y un apartado “requiere
+          atención” para enviar por correo o adjuntar a un cambio. También puede guardar CSV para Excel.
+          <code>wugrid-cli verify</code> hace el mismo informe desde la línea de comandos. El informe está en inglés.</p>
+        <p><a href="../sample-report.html">Abrir el informe de la ronda de demostración →</a></p>
+      </div>
+      <figure class="shot">
+        <a href="../sample-report.html"><img src="../img/report.png" width="1280" height="1000" loading="lazy"
+          alt="El informe HTML de la ronda: catorce servidores con el estado, el último arranque, los arranques, quién los reinició, la compilación de antes y de ahora y las actualizaciones instaladas, y un apartado requiere atención con la actualización fallida de SQL01."></a>
+      </figure>
+    </div>
+  </section>
+
+  <section class="feature" id="errors">
+    <div class="wrap row">
+      <div class="text">
+        <div class="eyebrow">Explicación</div>
+        <h2>Cada código de error, explicado</h2>
+        <p>El catálogo tiene 438 códigos de CBS, Windows Update, WMI y Win32, con descripciones y soluciones de
+          Microsoft Learn (en inglés) y las notas propias de WUGrid para los códigos que encuentra en las rondas reales.
+          Busca por código o por palabra. Pasa el ratón por encima de una nota de la cuadrícula para ver un resumen.</p>
+        <p>Las decisiones se basan en identificadores de evento y códigos de error, nunca en el texto de los mensajes,
+          así que funcionan sea cual sea el idioma de los servidores.</p>
+      </div>
+      <figure class="shot">
+        <a href="../img/es/errors.png"><img src="../img/es/errors.png" width="902" height="652" loading="lazy"
+          alt="La ventana Códigos de error buscando la palabra corrupt: códigos de CBS, Windows Update, Win32 y WMI, con 0x800F0840 seleccionado y explicado."></a>
+      </figure>
+    </div>
+  </section>
+
+  <section class="feature" id="console">
+    <div class="wrap">
+      <div class="row flip">
+        <div class="text">
+          <div class="eyebrow">Consola</div>
+          <h2>La misma ronda en una consola</h2>
+          <p><code>wugrid-cli watch</code> usa la misma sonda, los mismos estados, alarmas y comprobaciones que la
+            ventana. Su cuadrícula se redibuja cada segundo; cuando no caben todos los servidores, los limpios se pliegan
+            en una sola línea. Vuelve a leer el archivo de la lista de servidores cuando cambia.</p>
+          <p>Ejecútalo <b>sin interfaz</b> (<code>--headless</code>) y escribe una línea por cambio y por alarma, y se
+            detiene cuando todos los servidores han vuelto limpios. Un script o una tarea en segundo plano puede seguir
+            esa salida. La consola está en inglés.</p>
+        </div>
+        <figure class="shot">
+          <a href="../img/console.png"><img src="../img/console.png" width="994" height="640" loading="lazy"
+            alt="wugrid-cli watch en una ventana de consola: los mismos catorce servidores en filas de colores con los recuentos, la nota sobre los errores temporales y los últimos eventos."></a>
+        </figure>
+      </div>
+      <div class="cli-grid">
+        <div>
+          <h3>Comandos</h3>
+<pre class="term"><span class="p">&gt;</span> wugrid-cli watch --list servers.txt --since 2026-10-17T15:00
+<span class="p">&gt;</span> wugrid-cli watch --list servers.txt --headless \
+      --state state.json --events events.jsonl
+<span class="p">&gt;</span> wugrid-cli verify SRV01 SRV02 --html round.html
+<span class="p">&gt;</span> wugrid-cli check SRV01         <span class="c"># DNS, ping, WMI, admin$</span>
+<span class="p">&gt;</span> wugrid-cli error 0x800F0840   <span class="c"># explica un código</span></pre>
+          <p><code>--state</code> reescribe la ronda en JSON en cada actualización y <code>--events</code> añade una
+            línea JSON por evento. El código de salida dice si todos los servidores acabaron de vuelta limpios.</p>
+        </div>
+        <div>
+          <h3>Salida sin interfaz</h3>
+<pre class="term">15:22:12 RDS01: <span class="alarm">ALARM DOWN for 15m12s</span>
+15:29:07 SQL01: INSTALLING -&gt; DOWN
+15:31:09 SQL01: DOWN -&gt; BOOTING (Access is denied. *)
+15:31:40 SQL01: BOOTING (Access is denied. *) -&gt; BACK
+         (servicing finishing)
+15:32:26 SQL02: <span class="alarm">ALARM back 20m14s, reboot pending again</span>
+         <span class="alarm">(CBS 3 pkgs)</span>
+15:32:57 SQL01: BACK (servicing finishing) -&gt; <span class="flag">BACK (update</span>
+         <span class="flag">failed: KB5900001 (0x800F0840 CBS_E_SESSION_CORRUPT))</span></pre>
+          <p>Sacado de la ronda de demostración. El asterisco marca los errores que suelen ser temporales mientras un
+            servidor se reinicia.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="feature" id="start">
+    <div class="wrap">
+      <div class="center">
+        <h2>Empezar</h2>
+        <p class="sub">WUGrid está en desarrollo: descarga la última versión o compílalo desde el código fuente en un
+          minuto.</p>
+      </div>
+      <div class="cards">
+        <div class="card">
+          <h3>Descargar</h3>
+          <p>Un zip con <code>WUGrid.exe</code> y <code>wugrid-cli.exe</code>: descomprímelo donde quieras y ejecútalo,
+            no hay que instalar nada. Los binarios aún no están firmados, así que primero desbloquea el zip (Propiedades →
+            Desbloquear).</p>
+          <p><a class="btn primary" href="https://github.com/Lill82/WUGrid/releases/latest">Última versión</a></p>
+          <p>O compílalo con el .NET SDK 8 o posterior:</p>
+<pre class="term"><span class="p">&gt;</span> git clone https://github.com/Lill82/WUGrid
+<span class="p">&gt;</span> dotnet build WUGrid.sln -c Release</pre>
+        </div>
+        <div class="card">
+          <h3>Probar la demo</h3>
+          <p>Una ronda simulada de 75 minutos con 14 servidores inventados, con todos los casos de las notas de campo. No
+            se contacta con ningún servidor.</p>
+<pre class="term"><span class="p">&gt;</span> WUGrid.exe --demo --lang es
+<span class="p">&gt;</span> wugrid-cli watch --demo</pre>
+          <p>Las ventanas están en catalán, castellano o inglés: elige uno en la barra de estado o usa
+            <code>--lang</code>. La consola, los informes y los registros están en inglés.</p>
+        </div>
+        <div class="card">
+          <h3>Requisitos</h3>
+          <ul>
+            <li>Windows con .NET Framework 4.8 en la estación de trabajo de administración</li>
+            <li>ICMP y DCOM/RPC hacia los servidores (SMB para la comprobación de admin$)</li>
+            <li>Una cuenta que sea administradora en ellos</li>
+            <li>No se instala nada en los servidores; no hace falta WinRM</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="center" style="margin-top:64px">
+        <h2>Hacia dónde va</h2>
+        <p class="sub">De seguir una ronda a conducirla: buscar, instalar, reiniciar por oleadas, verificar.</p>
+      </div>
+      <ol class="roadmap">
+        <li><span class="m">M0</span><span class="s done">hecho</span><span class="d"><b>Cimientos:</b> solución, pruebas, CI, notas de campo anonimizadas</span></li>
+        <li><span class="m">M1</span><span class="s built">construido</span><span class="d"><b>Seguimiento:</b> cuadrícula en directo, cuadrícula de consola, eventos sin interfaz, estado en JSON</span></li>
+        <li><span class="m">M2</span><span class="s done">hecho</span><span class="d"><b>Verificación:</b> resultados de las actualizaciones, línea base de los servicios y por qué un servicio no arrancó, quién reinició, informe</span></li>
+        <li><span class="m">M3</span><span class="s cut">primera versión</span><span class="d"><b>Reinicio:</b> salvaguardas (trabajo de actualización, usuarios con la sesión iniciada), nueva comprobación, nunca forzado, auditoría, paradas previstas; a continuación, oleadas y una lista de protegidos</span></li>
+        <li><span class="m">M4</span><span class="s next">siguiente</span><span class="d"><b>Actualizaciones:</b> buscar → aprobar → instalar → reiniciar → verificar, sin agentes</span></li>
+        <li><span class="m">M5</span><span class="s cut">primera versión</span><span class="d"><b>Publicación:</b> zip en GitHub Releases desde la 0.9.0; a continuación, documentación y firma del código</span></li>
+      </ol>
+    </div>
+  </section>
+  <section class="feature" id="author">
+    <div class="wrap">
+      <div class="center">
+        <h2>Quién lo ha hecho</h2>
+        <p class="sub">WUGrid lo escribe Alex Lillo, administrador de sistemas Windows, con Claude. Empezó como una
+          cuadrícula de seguimiento en PowerShell hecha durante una ronda real de parches de 54 servidores y ha crecido
+          hasta ser esta herramienta. Preguntas, ideas e informes de campo son bienvenidos en GitHub.</p>
+        <p class="author-links">
+          <a class="btn" href="https://www.linkedin.com/in/alex-lillo-cst/" rel="author">LinkedIn</a>
+          <a class="btn" href="https://github.com/Lill82">GitHub</a>
+        </p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>WUGrid · hecho con buenas vibraciones por Claude y <a href="#author">Alex Lillo</a> · <a href="https://github.com/Lill82/WUGrid/blob/main/LICENSE">licencia MIT</a> · <a href="https://github.com/Lill82/WUGrid">github.com/Lill82/WUGrid</a></span>
+    <span>Descripciones de los errores de Microsoft Learn (CC BY 4.0). Sin ninguna relación con Microsoft.</span>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WUGrid — Windows Update rounds for servers</title>
+<meta name="description" content="WUGrid watches, restarts and verifies a Windows Server patch round, live and agentless over WMI/DCOM. Built on a real 54-server round.">
+<link rel="icon" type="image/png" href="../img/icon.png">
+<link rel="stylesheet" href="../style.css">
+<link rel="alternate" hreflang="ca" href="../">
+<link rel="alternate" hreflang="es" href="../es/">
+<link rel="alternate" hreflang="en" href="./">
+<link rel="alternate" hreflang="x-default" href="../">
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#"><img src="../img/icon.png" alt="" width="28" height="28">WUGrid</a>
+    <nav>
+      <a href="#watch">Watch</a>
+      <a href="#verify">Verify</a>
+      <a href="#restart">Restart</a>
+      <a href="#console">Console</a>
+      <a href="#start">Get started</a>
+      <a href="https://github.com/Lill82/WUGrid">GitHub</a>
+    </nav>
+    <div class="langs" aria-label="Language">
+      <a href="../" hreflang="ca" lang="ca">Català</a>
+      <a href="../es/" hreflang="es" lang="es">Español</a>
+      <a href="./" hreflang="en" lang="en" aria-current="page">English</a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <div class="badge"><b>Early development</b> · v0.10.0 · read-only unless you restart</div>
+      <h1>Watch every server through a Windows&nbsp;Update restart round</h1>
+      <p class="lead">WUGrid shows each server's state every few seconds, restarts the ones you pick without forcing them,
+        and checks what a green restart can hide. It works agentless over WMI/DCOM, so it runs where WinRM is closed
+        and installs nothing on the servers.</p>
+      <div class="buttons">
+        <a class="btn primary" href="https://github.com/Lill82/WUGrid/releases/latest">Download</a>
+        <a class="btn" href="#start">Get started</a>
+        <a class="btn" href="https://github.com/Lill82/WUGrid">View on GitHub</a>
+      </div>
+      <figure class="shot">
+        <a href="../img/en/grid.png"><img src="../img/en/grid.png" width="1182" height="792"
+          alt="The WUGrid window during a demo round: fourteen servers, coloured by state (back, flagged, booting, down, installing, restart pending), counts across the top, and the round's events below."></a>
+      </figure>
+      <p class="caption">The demo round, 26 minutes in. Simulated servers; nothing is contacted.</p>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <div class="pillars">
+      <div class="pillar">
+        <div class="icon" style="background: var(--installing)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg></div>
+        <h3>Agentless</h3>
+        <p>ICMP and WMI over DCOM, with one reused connection per server. It uses only what every Windows Server has:
+          no WinRM, no agent and no ConfigMgr.</p>
+      </div>
+      <div class="pillar">
+        <div class="icon" style="background: var(--back)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></div>
+        <h3>Observe by default</h3>
+        <p>Watching and verifying never change a server. A restart is a named action: you see the plan, confirm it,
+          each server is checked again, and the result is recorded.</p>
+      </div>
+      <div class="pillar">
+        <div class="icon" style="background: var(--pending)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+        <h3>Rules from a real round</h3>
+        <p>Built on a 54-server round. Chained reboots, a minute of “access denied” while a server boots, and component
+          cleanup are routine and shown as such. Real failures are flagged.</p>
+      </div>
+    </div>
+  </div>
+
+  <section class="feature" id="watch">
+    <div class="wrap row">
+      <div class="text">
+        <div class="eyebrow">Watch</div>
+        <h2>Every server, at a glance</h2>
+        <p>Each server gets its own worker that pings it and reads its last boot, servicing processes and the CBS and
+          Windows Update reboot keys. A <b>cut-off</b> time decides what counts as restarted.</p>
+        <dl class="states">
+          <dt><span class="chip c-pending">RESTART PENDING</span></dt><dd>not restarted yet; CBS packages or Windows Update waiting</dd>
+          <dt><span class="chip c-notpending">NO RESTART PENDING</span></dt><dd>not restarted yet; nothing pending</dd>
+          <dt><span class="chip c-installing">INSTALLING</span></dt><dd>servicing before the shutdown</dd>
+          <dt><span class="chip c-down">DOWN</span></dt><dd>no ping, with how long it has been down</dd>
+          <dt><span class="chip c-booting">BOOTING</span></dt><dd>answers ping, WMI not ready yet</dd>
+          <dt><span class="chip c-back">BACK</span></dt><dd>restarted after the cut-off, checks clean</dd>
+          <dt><span class="chip c-flagged">BACK · PENDING</span></dt><dd>restarted, but a restart is pending again</dd>
+          <dt><span class="chip c-flagged">BACK</span></dt><dd>restarted, but an update failed or a service is not running</dd>
+        </dl>
+        <p class="note" style="margin-top:16px">There are alarms for a server down 15 minutes or still pending 20 minutes
+          after its boot, and one line when every server is back clean with its checks done.</p>
+      </div>
+      <figure class="shot">
+        <a href="../img/en/grid-early.png"><img src="../img/en/grid-early.png" width="1182" height="792" loading="lazy"
+          alt="The grid 12 minutes into the demo round: servers installing, down, booting, back, with a restart pending or none pending."></a>
+        <figcaption>12 minutes in: half the round still installing, down or booting.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="feature" id="verify">
+    <div class="wrap row flip">
+      <div class="text">
+        <div class="eyebrow">Verify</div>
+        <h2>Catches the restarts that only look green</h2>
+        <p>When several months of cumulative updates were staged on top of each other, only the oldest committed. The
+          servers came back looking clean, but at an old patch level. Once a server is back, WUGrid reads its System log
+          and services (read-only) and flags:</p>
+        <ul>
+          <li>an <b>update that failed</b> (Windows Update event 20), with the error explained;</li>
+          <li>a <b>service not running</b> that ran before the restart, who changed its start type, and <b>why it did
+            not start</b> — timed out at start, a service it depends on, its account — and whether it failed at the boots
+            before too; a stop you know about (a role being removed) can be marked <b>expected</b>: shown with the
+            reason, not flagged;</li>
+          <li>who restarted it and why (event 1074), each boot and the build it came up on.</li>
+        </ul>
+        <p>Double-click a row for the details. The Build column shows the build before and after.</p>
+      </div>
+      <figure class="shot">
+        <a href="../img/en/details.png"><img src="../img/en/details.png" width="822" height="652" loading="lazy"
+          alt="Details of SQL01: back but flagged, the 2026-09 cumulative update failed with 0x800F0840 CBS_E_SESSION_CORRUPT, the error explained with what to do, the restart by an admin, one boot, services all running."></a>
+      </figure>
+    </div>
+  </section>
+
+  <section class="feature" id="restart">
+    <div class="wrap row">
+      <div class="text">
+        <div class="eyebrow">Restart</div>
+        <h2>Restarts that never force</h2>
+        <ul>
+          <li>Only servers with <b>no update work running</b> can be ticked, and each is <b>checked again</b> just
+            before the restart is sent.</li>
+          <li><b>Never forced</b> (<code>Win32ShutdownTracker</code>, reboot without force): running programs can delay
+            or cancel it.</li>
+          <li>A server with a <b>user signed in</b> is skipped, naming who: Windows refuses a restart that is not
+            forced while anyone is signed in.</li>
+          <li>An optional warning period, during which <code>shutdown /a</code> on the server aborts it.</li>
+          <li><b>Check only</b> runs everything but the restart call.</li>
+          <li>Each request and result goes to an append-only <b>audit log</b>, and your comment shows up in
+            event 1074 on the server.</li>
+        </ul>
+      </div>
+      <figure class="shot">
+        <a href="../img/en/reboot.png"><img src="../img/en/reboot.png" width="982" height="632" loading="lazy"
+          alt="The Reboot servers window: each server with whether it can be restarted now and why not (component cleanup, down, booting, installing updates), two servers with a restart pending ticked, warning and comment options, Check only and Restart buttons."></a>
+      </figure>
+    </div>
+  </section>
+
+  <section class="feature" id="report">
+    <div class="wrap row flip">
+      <div class="text">
+        <div class="eyebrow">Report</div>
+        <h2>The round, on one page</h2>
+        <p><b>Report…</b> saves the round as a self-contained HTML page, with a summary and a “needs attention” section
+          to mail or attach to a change. It can also save CSV for Excel.
+          <code>wugrid-cli verify</code> makes the same report from the command line.</p>
+        <p><a href="../sample-report.html">Open the demo round's report →</a></p>
+      </div>
+      <figure class="shot">
+        <a href="../sample-report.html"><img src="../img/report.png" width="1280" height="1000" loading="lazy"
+          alt="The HTML round report: fourteen servers with state, last boot, boots, who restarted them, build before and after and updates installed, and a needs-attention section listing SQL01's failed update."></a>
+      </figure>
+    </div>
+  </section>
+
+  <section class="feature" id="errors">
+    <div class="wrap row">
+      <div class="text">
+        <div class="eyebrow">Explain</div>
+        <h2>Every error code, explained</h2>
+        <p>The catalog has 438 CBS, Windows Update, WMI and Win32 codes, with descriptions and fixes from Microsoft
+          Learn and WUGrid's own notes for the codes it runs into on real rounds. Search by code or by word. Hover a
+          note in the grid for a summary.</p>
+        <p>Decisions use event IDs and error codes, never message text, so they work whatever language the servers
+          use.</p>
+      </div>
+      <figure class="shot">
+        <a href="../img/en/errors.png"><img src="../img/en/errors.png" width="902" height="652" loading="lazy"
+          alt="The Error codes window searching for the word corrupt: CBS, Windows Update, Win32 and WMI codes, with 0x800F0840 selected and explained."></a>
+      </figure>
+    </div>
+  </section>
+
+  <section class="feature" id="console">
+    <div class="wrap">
+      <div class="row flip">
+        <div class="text">
+          <div class="eyebrow">Console</div>
+          <h2>The same round in a console</h2>
+          <p><code>wugrid-cli watch</code> uses the same probe, states, alarms and checks as the window. Its grid
+            redraws every second; when the servers don't all fit, clean ones fold into a single line. It re-reads the
+            server list file when it changes.</p>
+          <p>Run it <b>headless</b> and it prints one line per change and alarm, then stops once every server is back
+            clean. A script or a background task can follow that output.</p>
+        </div>
+        <figure class="shot">
+          <a href="../img/console.png"><img src="../img/console.png" width="994" height="640" loading="lazy"
+            alt="wugrid-cli watch in a console window: the same fourteen servers in coloured rows with counts, the transient-error footnote and the latest events."></a>
+        </figure>
+      </div>
+      <div class="cli-grid">
+        <div>
+          <h3>Commands</h3>
+<pre class="term"><span class="p">&gt;</span> wugrid-cli watch --list servers.txt --since 2026-10-17T15:00
+<span class="p">&gt;</span> wugrid-cli watch --list servers.txt --headless \
+      --state state.json --events events.jsonl
+<span class="p">&gt;</span> wugrid-cli verify SRV01 SRV02 --html round.html
+<span class="p">&gt;</span> wugrid-cli check SRV01         <span class="c"># DNS, ping, WMI, admin$</span>
+<span class="p">&gt;</span> wugrid-cli error 0x800F0840   <span class="c"># explain a code</span></pre>
+          <p><code>--state</code> rewrites the round as JSON on every refresh and <code>--events</code> appends one JSON
+            line per event. The exit code says whether every server ended back clean.</p>
+        </div>
+        <div>
+          <h3>Headless output</h3>
+<pre class="term">15:22:12 RDS01: <span class="alarm">ALARM DOWN for 15m12s</span>
+15:29:07 SQL01: INSTALLING -&gt; DOWN
+15:31:09 SQL01: DOWN -&gt; BOOTING (Access is denied. *)
+15:31:40 SQL01: BOOTING (Access is denied. *) -&gt; BACK
+         (servicing finishing)
+15:32:26 SQL02: <span class="alarm">ALARM back 20m14s, reboot pending again</span>
+         <span class="alarm">(CBS 3 pkgs)</span>
+15:32:57 SQL01: BACK (servicing finishing) -&gt; <span class="flag">BACK (update</span>
+         <span class="flag">failed: KB5900001 (0x800F0840 CBS_E_SESSION_CORRUPT))</span></pre>
+          <p>Taken from the demo round. The asterisk marks errors that are usually temporary while a server
+            restarts.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="feature" id="start">
+    <div class="wrap">
+      <div class="center">
+        <h2>Get started</h2>
+        <p class="sub">WUGrid is in early development: download the latest release, or build it from source in a
+          minute.</p>
+      </div>
+      <div class="cards">
+        <div class="card">
+          <h3>Download</h3>
+          <p>A zip with <code>WUGrid.exe</code> and <code>wugrid-cli.exe</code>: unzip it anywhere and run, nothing to
+            install. The binaries are not signed yet, so unblock the zip first (Properties → Unblock).</p>
+          <p><a class="btn primary" href="https://github.com/Lill82/WUGrid/releases/latest">Latest release</a></p>
+          <p>Or build it, with the .NET SDK 8 or later:</p>
+<pre class="term"><span class="p">&gt;</span> git clone https://github.com/Lill82/WUGrid
+<span class="p">&gt;</span> dotnet build WUGrid.sln -c Release</pre>
+        </div>
+        <div class="card">
+          <h3>Try the demo</h3>
+          <p>A simulated 75-minute round of 14 made-up servers, with every pattern from the field notes. No server is
+            contacted.</p>
+<pre class="term"><span class="p">&gt;</span> WUGrid.exe --demo --lang en
+<span class="p">&gt;</span> wugrid-cli watch --demo</pre>
+          <p>The windows are in Catalan, Spanish or English: pick one in the status bar, or pass <code>--lang</code>.
+            The console, the reports and the logs are in English.</p>
+        </div>
+        <div class="card">
+          <h3>Requirements</h3>
+          <ul>
+            <li>Windows with .NET Framework 4.8 on the admin workstation</li>
+            <li>ICMP and DCOM/RPC to the servers (SMB for the admin$ check)</li>
+            <li>An account that is an administrator on them</li>
+            <li>Nothing installed on the servers; WinRM not needed</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="center" style="margin-top:64px">
+        <h2>Where it is going</h2>
+        <p class="sub">From watching a round to driving it: scan, install, restart in waves, verify.</p>
+      </div>
+      <ol class="roadmap">
+        <li><span class="m">M0</span><span class="s done">done</span><span class="d"><b>Foundation:</b> solution, tests, CI, anonymised field notes</span></li>
+        <li><span class="m">M1</span><span class="s built">built</span><span class="d"><b>Watch:</b> live grid, console grid, headless events, state JSON</span></li>
+        <li><span class="m">M2</span><span class="s done">done</span><span class="d"><b>Verify:</b> update results, services baseline and why a service did not start, who restarted, report</span></li>
+        <li><span class="m">M3</span><span class="s cut">first cut</span><span class="d"><b>Restart:</b> guards (update work, users signed in), re-check, never forced, audit, expected stops; waves and a protect list next</span></li>
+        <li><span class="m">M4</span><span class="s next">next</span><span class="d"><b>Updates:</b> scan → approve → install → restart → verify, agentless</span></li>
+        <li><span class="m">M5</span><span class="s cut">first cut</span><span class="d"><b>Release:</b> zip on GitHub Releases from 0.9.0; docs and code signing next</span></li>
+      </ol>
+    </div>
+  </section>
+  <section class="feature" id="author">
+    <div class="wrap">
+      <div class="center">
+        <h2>Who made it</h2>
+        <p class="sub">WUGrid is written by Alex Lillo, a Windows sysadmin, with Claude. It started as a PowerShell watch
+          grid built during a real 54-server patch round and grew into this tool. Questions, ideas and field reports are
+          welcome on GitHub.</p>
+        <p class="author-links">
+          <a class="btn" href="https://www.linkedin.com/in/alex-lillo-cst/" rel="author">LinkedIn</a>
+          <a class="btn" href="https://github.com/Lill82">GitHub</a>
+        </p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>WUGrid · vibed by Claude &amp; <a href="#author">Alex Lillo</a> · <a href="https://github.com/Lill82/WUGrid/blob/main/LICENSE">MIT licence</a> · <a href="https://github.com/Lill82/WUGrid">github.com/Lill82/WUGrid</a></span>
+    <span>Error descriptions from Microsoft Learn (CC BY 4.0). Not affiliated with Microsoft.</span>
+  </div>
+</footer>
+
+</body>
+</html>

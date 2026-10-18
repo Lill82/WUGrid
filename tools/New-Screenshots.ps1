@@ -1,10 +1,12 @@
 <#
     New-Screenshots.ps1 -- regenerates the project page's pictures (site\img) from the demo round. No server is contacted.
 
-    - WUGrid.exe --demo --screenshots: the grid, the Reboot window (preview: sends and records nothing), a server's
-      details, the error catalog, and the demo's end-of-round report (site\sample-report.html)
+    - WUGrid.exe --demo --screenshots, once per language of the page (site\img\ca, es, en): the grid, the Reboot
+      window (preview: sends and records nothing), a server's details, the error catalog; and the demo's end-of-round
+      report (site\sample-report.html, English like everything Core writes)
     - Microsoft Edge, headless: that report as a picture
-    - a console window running wugrid-cli watch --demo, captured once the demo round is under way
+    - a console window running wugrid-cli watch --demo, captured once the demo round is under way (one picture for
+      every language: the CLI is in English)
 
     Windows sit off-screen while they are captured. Run it on a 100 % display scale for 1:1 pictures.
 
@@ -70,13 +72,17 @@ $bitmap = $icon.ToBitmap()
 $bitmap.Save((Join-Path $img 'icon.png'), [Drawing.Imaging.ImageFormat]::Png)
 $bitmap.Dispose(); $icon.Dispose()
 
-# 1. The GUI's own tour
-$tmp = Join-Path ([IO.Path]::GetTempPath()) "wugrid-shots-$PID"
-$p = Start-Process $gui -ArgumentList '--demo', '--screenshots', "`"$tmp`"" -PassThru
-if (-not $p.WaitForExit(120000)) { Stop-Process $p -Force; throw 'WUGrid.exe --screenshots did not finish within 2 min' }
-Copy-Item (Join-Path $tmp '*.png') $img -Force
-Copy-Item (Join-Path $tmp 'report.html') (Join-Path $site 'sample-report.html') -Force
-Remove-Item $tmp -Recurse -Force
+# 1. The GUI's own tour, in each language the page comes in (site\index.html = ca, site\es, site\en)
+foreach ($lang in 'ca', 'es', 'en') {
+    $tmp = Join-Path ([IO.Path]::GetTempPath()) "wugrid-shots-$PID-$lang"
+    $p = Start-Process $gui -ArgumentList '--demo', '--lang', $lang, '--screenshots', "`"$tmp`"" -PassThru
+    if (-not $p.WaitForExit(120000)) { Stop-Process $p -Force; throw "WUGrid.exe --screenshots ($lang) did not finish within 2 min" }
+    $dir = Join-Path $img $lang
+    [void](New-Item -ItemType Directory -Force $dir)
+    Copy-Item (Join-Path $tmp '*.png') $dir -Force
+    if ($lang -eq 'en') { Copy-Item (Join-Path $tmp 'report.html') (Join-Path $site 'sample-report.html') -Force }
+    Remove-Item $tmp -Recurse -Force
+}
 
 # 2. The report, rendered by Edge
 $edge = @("${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe", "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe") |
@@ -113,9 +119,9 @@ try {
     Stop-Process $c -Force -ErrorAction SilentlyContinue
 }
 
-Get-ChildItem $img -Filter *.png | ForEach-Object {
+Get-ChildItem $img -Filter *.png -Recurse | ForEach-Object {
     Add-Type -AssemblyName System.Drawing
     $i = [Drawing.Image]::FromFile($_.FullName)
-    "site\img\$($_.Name)  $($i.Width)x$($i.Height)"
+    "site\img\$($_.FullName.Substring($img.Length + 1))  $($i.Width)x$($i.Height)"
     $i.Dispose()
 }

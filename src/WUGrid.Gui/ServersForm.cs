@@ -33,7 +33,7 @@ namespace WUGrid.Gui
         {
             this.cache = cache;
             scale = DeviceDpi / 96f;
-            Text = "Servers";
+            Text = L.T("Servers");
             Icon = AppInfo.Icon;
             Font = new Font("Segoe UI", 9.75f);
             ClientSize = new Size(Px(980), Px(600));
@@ -63,14 +63,14 @@ namespace WUGrid.Gui
             panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            var hint = new Label { Text = "Add servers: names separated by commas, spaces or lines (paste a list here). Each one is checked once, read-only.", AutoSize = true, ForeColor = Palette.MutedText };
+            var hint = new Label { Text = L.T("Add servers: names separated by commas, spaces or lines (paste a list here). Each one is checked once, read-only."), AutoSize = true, ForeColor = Palette.MutedText };
             panel.Controls.Add(hint, 0, 0);
             panel.SetColumnSpan(hint, 3);
             input.Dock = DockStyle.Fill;
             input.KeyDown += (s, e) => { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; AddFromInput(); } };
-            var add = new Button { Text = "Add", AutoSize = true, Margin = new Padding(Px(6), 0, 0, 0) };
+            var add = new Button { Text = L.T("Add"), AutoSize = true, Margin = new Padding(Px(6), 0, 0, 0) };
             add.Click += (s, e) => AddFromInput();
-            var import = new Button { Text = "Import…", AutoSize = true, Margin = new Padding(Px(6), 0, 0, 0) };
+            var import = new Button { Text = L.T("Import…"), AutoSize = true, Margin = new Padding(Px(6), 0, 0, 0) };
             import.Click += (s, e) => Import();
             panel.Controls.Add(input, 0, 1);
             panel.Controls.Add(add, 1, 1);
@@ -85,7 +85,7 @@ namespace WUGrid.Gui
             list.FullRowSelect = true;
             list.HideSelection = false;
             list.BorderStyle = BorderStyle.None;
-            list.Columns.Add("Server", Px(150));
+            list.Columns.Add(L.T("Server"), Px(150));
             list.Columns.Add("DNS", Px(130));
             list.Columns.Add("Ping", Px(90));
             list.Columns.Add("DCOM / WMI", Px(380));
@@ -118,10 +118,10 @@ namespace WUGrid.Gui
             bar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             bar.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             bar.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            var remove = new Button { Text = "Remove", AutoSize = true };
-            var recheck = new Button { Text = "Check again", AutoSize = true };
-            var ok = new Button { Text = "OK", DialogResult = DialogResult.OK, AutoSize = true, MinimumSize = new Size(Px(80), 0) };
-            var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, AutoSize = true, MinimumSize = new Size(Px(80), 0) };
+            var remove = new Button { Text = L.T("Remove"), AutoSize = true };
+            var recheck = new Button { Text = L.T("Check again"), AutoSize = true };
+            var ok = new Button { Text = L.T("OK"), DialogResult = DialogResult.OK, AutoSize = true, MinimumSize = new Size(Px(80), 0) };
+            var cancel = new Button { Text = L.T("Cancel"), DialogResult = DialogResult.Cancel, AutoSize = true, MinimumSize = new Size(Px(80), 0) };
             remove.Click += (s, e) => RemoveSelected();
             recheck.Click += (s, e) => Recheck();
             summary.AutoSize = true;
@@ -142,7 +142,7 @@ namespace WUGrid.Gui
 
         void Import()
         {
-            using (var dialog = new OpenFileDialog { Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*", Title = "Import server list" })
+            using (var dialog = new OpenFileDialog { Filter = L.T("Text files (*.txt)|*.txt|All files (*.*)|*.*"), Title = L.T("Import server list") })
             {
                 if (dialog.ShowDialog(this) != DialogResult.OK) return;
                 foreach (var name in ServerList.Load(dialog.FileName)) AddRow(name, check: true);
@@ -225,7 +225,7 @@ namespace WUGrid.Gui
                 case CheckStatus.Ok: cell.Text = "✓ " + c.Detail; cell.ForeColor = Palette.CleanText; break;
                 case CheckStatus.Failed: cell.Text = "✗ " + c.Detail; cell.ForeColor = Palette.AlarmText; break;
                 case CheckStatus.Skipped: cell.Text = "–"; cell.ForeColor = Palette.MutedText; break;
-                default: cell.Text = "checking…"; cell.ForeColor = Palette.MutedText; break;
+                default: cell.Text = L.T("checking…"); cell.ForeColor = Palette.MutedText; break;
             }
         }
 
@@ -234,26 +234,27 @@ namespace WUGrid.Gui
             var r = list.SelectedItems.Count == 1 ? list.SelectedItems[0].Tag as AccessCheckResult : null;
             if (r == null) { details.Clear(); return; }
             var sb = new StringBuilder();
-            sb.Append(r.Server).Append(r.Done ? $"   checked {r.CheckedAt:HH:mm:ss}" : "   checking…").AppendLine();
+            sb.Append(r.Server).Append("   ").Append(r.Done ? L.F("checked {0:HH:mm:ss}", r.CheckedAt) : L.T("checking…")).AppendLine();
             Describe(sb, "DNS", r.Dns);
             Describe(sb, "Ping", r.Ping);
             Describe(sb, "DCOM / WMI", r.Wmi);
             Describe(sb, "admin$", r.AdminShare);
             if (r.Ping.State == CheckStatus.Failed && r.Wmi.State == CheckStatus.Ok)
-                sb.AppendLine("Ping is blocked but WMI answers: the grid uses ping for up/down, so this server will show as DOWN.");
+                sb.AppendLine(L.T("Ping is blocked but WMI answers: the grid uses ping for up/down, so this server will show as DOWN."));
             details.Text = sb.ToString();
         }
 
         static void Describe(StringBuilder sb, string label, CheckOutcome c)
         {
-            sb.Append($"{label}: ").Append(c.State == CheckStatus.Pending ? "checking…" : c.State.ToString().ToLowerInvariant());
+            sb.Append($"{label}: ").Append(c.State == CheckStatus.Pending ? L.T("checking…") : c.State == CheckStatus.Ok ? L.T("ok")
+                                         : c.State == CheckStatus.Failed ? L.T("failed") : L.T("skipped"));
             if (c.Detail != "") sb.Append(" — ").Append(c.Detail);
             sb.AppendLine();
             if (c.State != CheckStatus.Failed || c.HResult == 0) return;
             foreach (var e in ErrorCatalog.Lookup(c.HResult))
             {
                 sb.Append("    ").Append(e.Hex).Append(e.Name == "" ? "" : " " + e.Name).Append(": ").AppendLine(e.Description);
-                if (e.Mitigation != "") sb.Append("    What to do: ").AppendLine(e.Mitigation);
+                if (e.Mitigation != "") sb.Append("    ").AppendLine(L.F("What to do: {0}", e.Mitigation));
             }
         }
 
@@ -262,7 +263,7 @@ namespace WUGrid.Gui
             var results = list.Items.Cast<ListViewItem>().Select(i => i.Tag as AccessCheckResult).ToList();
             var checking = results.Count(r => r == null || !r.Done);
             var problems = results.Count(r => r != null && r.Done && !r.AllOk);
-            summary.Text = $"{list.Items.Count} servers" + (checking > 0 ? $" · {checking} checking" : "") + (problems > 0 ? $" · {problems} with problems" : "");
+            summary.Text = L.F("{0} servers", list.Items.Count) + (checking > 0 ? " · " + L.F("{0} checking", checking) : "") + (problems > 0 ? " · " + L.F("{0} with problems", problems) : "");
         }
     }
 }

@@ -17,9 +17,9 @@ namespace WUGrid.Gui
     {
         readonly float scale;
         readonly ListView stops = new ListView();
-        readonly CheckBox everyServer = new CheckBox { Text = "On every server", AutoSize = true };
+        readonly CheckBox everyServer = new CheckBox { Text = L.T("On every server"), AutoSize = true };
         readonly TextBox why = new TextBox();
-        readonly Button mark = new Button { Text = "Mark ticked as expected", AutoSize = true };
+        readonly Button mark = new Button { Text = L.T("Mark ticked as expected"), AutoSize = true };
         readonly ListView list = new ListView();
         readonly Label summary = new Label();
         readonly List<ExpectedStop> entries;
@@ -29,7 +29,7 @@ namespace WUGrid.Gui
         {
             entries = current.ToList();
             scale = DeviceDpi / 96f;
-            Text = "Expected service stops";
+            Text = L.T("Expected service stops");
             Icon = AppInfo.Icon;
             Font = new Font("Segoe UI", 9.75f);
             ClientSize = new Size(Px(980), Px(640));
@@ -63,8 +63,7 @@ namespace WUGrid.Gui
             var hint = new Label
             {
                 AutoSize = true, ForeColor = Palette.MutedText, MaximumSize = new Size(Px(940), 0),
-                Text = "Services not running right now. Tick the ones you expect to stay stopped (a role being removed, an application retired), say why " +
-                       "and mark them: the server is no longer flagged for them and the stop stays visible with your reason. Nothing is sent to any server.",
+                Text = L.T("Services not running right now. Tick the ones you expect to stay stopped (a role being removed, an application retired), say why and mark them: the server is no longer flagged for them and the stop stays visible with your reason. Nothing is sent to any server."),
             };
             panel.Controls.Add(hint, 0, 0);
             panel.SetColumnSpan(hint, 4);
@@ -76,11 +75,11 @@ namespace WUGrid.Gui
             stops.HideSelection = false;
             stops.BorderStyle = BorderStyle.FixedSingle;
             stops.Margin = new Padding(0, Px(6), 0, Px(6));
-            stops.Columns.Add("Server", Px(130));
-            stops.Columns.Add("Service", Px(220));
-            stops.Columns.Add("Display name", Px(300));
-            stops.Columns.Add("State", Px(130));
-            stops.Columns.Add("Expected?", Px(100));
+            stops.Columns.Add(L.T("Server"), Px(130));
+            stops.Columns.Add(L.T("Service"), Px(220));
+            stops.Columns.Add(L.T("Display name"), Px(300));
+            stops.Columns.Add(L.T("State"), Px(130));
+            stops.Columns.Add(L.T("Expected?"), Px(100));
             foreach (var row in snapshot.Rows)
             {
                 var v = row.CurrentVerification;
@@ -96,7 +95,7 @@ namespace WUGrid.Gui
                 }
             }
             if (stops.Items.Count == 0)
-                stops.Items.Add(new ListViewItem(new[] { "", "no service is stopped in the round right now", "", "", "" }) { ForeColor = Palette.MutedText });
+                stops.Items.Add(new ListViewItem(new[] { "", L.T("no service is stopped in the round right now"), "", "", "" }) { ForeColor = Palette.MutedText });
             panel.Controls.Add(stops, 0, 1);
             panel.SetColumnSpan(stops, 4);
 
@@ -107,7 +106,7 @@ namespace WUGrid.Gui
             why.KeyDown += (s, e) => { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; MarkTicked(); } };
             mark.Click += (s, e) => MarkTicked();
             panel.Controls.Add(everyServer, 0, 2);
-            panel.Controls.Add(new Label { Text = "Why", AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(0, Px(4), 0, 0) }, 1, 2);
+            panel.Controls.Add(new Label { Text = L.T("Why"), AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(0, Px(4), 0, 0) }, 1, 2);
             panel.Controls.Add(why, 2, 2);
             panel.Controls.Add(mark, 3, 2);
             return panel;
@@ -120,11 +119,11 @@ namespace WUGrid.Gui
             list.FullRowSelect = true;
             list.HideSelection = false;
             list.BorderStyle = BorderStyle.None;
-            list.Columns.Add("Server", Px(130));
-            list.Columns.Add("Service", Px(220));
-            list.Columns.Add("Why", Px(580));
+            list.Columns.Add(L.T("Server"), Px(130));
+            list.Columns.Add(L.T("Service"), Px(220));
+            list.Columns.Add(L.T("Why"), Px(580));
             list.KeyDown += (s, e) => { if (e.KeyCode == Keys.Delete) RemoveSelected(); };
-            var title = new Label { Dock = DockStyle.Top, Height = Px(26), Text = "Expected stops in force (select and Remove, or Delete, to take one back)", ForeColor = Palette.MutedText };
+            var title = new Label { Dock = DockStyle.Top, Height = Px(26), Text = L.T("Expected stops in force (select and Remove, or Delete, to take one back)"), ForeColor = Palette.MutedText };
             var host = new Panel { Dock = DockStyle.Fill, Padding = new Padding(Px(10), Px(4), Px(10), 0) };
             host.Controls.Add(list);
             host.Controls.Add(title);
@@ -138,10 +137,10 @@ namespace WUGrid.Gui
             bar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             bar.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             bar.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            var remove = new Button { Text = "Remove", AutoSize = true };
+            var remove = new Button { Text = L.T("Remove"), AutoSize = true };
             remove.Click += (s, e) => RemoveSelected();
-            var ok = new Button { Text = "OK", DialogResult = DialogResult.OK, AutoSize = true, MinimumSize = new Size(Px(80), 0) };
-            var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, AutoSize = true, MinimumSize = new Size(Px(80), 0) };
+            var ok = new Button { Text = L.T("OK"), DialogResult = DialogResult.OK, AutoSize = true, MinimumSize = new Size(Px(80), 0) };
+            var cancel = new Button { Text = L.T("Cancel"), DialogResult = DialogResult.Cancel, AutoSize = true, MinimumSize = new Size(Px(80), 0) };
             summary.AutoSize = true;
             summary.Anchor = AnchorStyles.Left;
             summary.ForeColor = Palette.MutedText;
@@ -183,10 +182,10 @@ namespace WUGrid.Gui
             {
                 if (!(i.Tag is string[] key)) continue;
                 var known = ExpectedList.Find(entries, key[0], key[1]) != null;
-                i.SubItems[4].Text = known ? "yes" : "";
+                i.SubItems[4].Text = known ? L.T("yes") : "";
                 i.ForeColor = known ? Palette.MutedText : Palette.Text;
             }
-            summary.Text = entries.Count == 1 ? "1 expected stop" : $"{entries.Count} expected stops";
+            summary.Text = entries.Count == 1 ? L.T("1 expected stop") : L.F("{0} expected stops", entries.Count);
         }
     }
 }
