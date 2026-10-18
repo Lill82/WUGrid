@@ -137,6 +137,7 @@ pre.term .flag { color: #fb923c; }
 .roadmap .s { font-size: 12px; font-weight: 700; text-align: center; border-radius: 4px; padding: 2px 8px; color: #fff; }
 .s.done { background: var(--back); } .s.built { background: #15803d; } .s.cut { background: var(--installing); } .s.next { background: var(--pending); } .s.plan { background: var(--notpending); }
 .roadmap .d { color: var(--muted); font-size: 15px; }
+.author-links { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 24px 0 0; }
 .roadmap .d b { color: var(--text); font-weight: 600; }
 
 footer { border-top: 1px solid var(--line); padding: 32px 0 48px; color: var(--muted); font-size: 14px; }
@@ -430,11 +431,25 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
       </ol>
     </div>
   </section>
+  <section class="feature" id="author">
+    <div class="wrap">
+      <div class="center">
+        <h2>Who made it</h2>
+        <p class="sub">WUGrid is written by Alex Lillo, a Windows sysadmin, with Claude. It started as a PowerShell watch
+          grid built during a real 54-server patch round and grew into this tool. Questions, ideas and field reports are
+          welcome on GitHub.</p>
+        <p class="author-links">
+          <a class="btn" href="https://www.linkedin.com/in/alex-lillo-cst/" rel="author">LinkedIn</a>
+          <a class="btn" href="https://github.com/Lill82">GitHub</a>
+        </p>
+      </div>
+    </div>
+  </section>
 </main>
 
 <footer>
   <div class="wrap">
-    <span>WUGrid · vibed by Claude &amp; Lill · <a href="https://github.com/Lill82/WUGrid/blob/main/LICENSE">MIT licence</a> · <a href="https://github.com/Lill82/WUGrid">github.com/Lill82/WUGrid</a></span>
+    <span>WUGrid · vibed by Claude &amp; <a href="#author">Alex Lillo</a> · <a href="https://github.com/Lill82/WUGrid/blob/main/LICENSE">MIT licence</a> · <a href="https://github.com/Lill82/WUGrid">github.com/Lill82/WUGrid</a></span>
     <span>Error descriptions from Microsoft Learn (CC BY 4.0). Not affiliated with Microsoft.</span>
   </div>
 </footer>
