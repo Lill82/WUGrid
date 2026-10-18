@@ -239,7 +239,8 @@ namespace WUGrid.Gui
 
         void ShowDetails(string name) =>
             new ServerDetailsForm(name, n => lastSnapshot?.Rows.FirstOrDefault(r => string.Equals(r.Name, n, StringComparison.OrdinalIgnoreCase)),
-                                  live == null ? (Action<string>)null : live.RequestVerify, n => EditExpected(n)).Show(this);
+                                  live == null ? (Action<string>)null : live.RequestVerify, n => EditExpected(n),
+                                  live == null ? (Action<string>)null : live.RequestEarlierBoots).Show(this);
 
         void SaveReport()
         {

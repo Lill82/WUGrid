@@ -10,7 +10,7 @@ namespace WUGrid.Core.Restart
 
     public sealed class RestartOptions
     {
-        /// <summary>Warning shown to logged-on users before the restart; it can be aborted on the server with shutdown /a.</summary>
+        /// <summary>Wait between the request and the restart, during which it can be aborted on the server with shutdown /a.</summary>
         public int WarningSeconds { get; set; } = 60;
 
         /// <summary>Added to the comment WUGrid writes (it lands in System event 1074 on the server).</summary>
@@ -41,8 +41,9 @@ namespace WUGrid.Core.Restart
     /// <summary>
     /// Restarts one server, never forced: Win32_OperatingSystem.Win32ShutdownTracker with flags 2 (reboot, no force), so
     /// running programs can delay or cancel it, and a warning period during which it can be aborted on the server
-    /// (shutdown /a). Before sending it, the server is read again over a fresh connection and the
-    /// <see cref="RestartGuard"/> applied to that read: anything that started update work in the meantime is skipped.
+    /// (shutdown /a). Before sending it, the server is read again over a fresh connection, with who is signed in, and the
+    /// <see cref="RestartGuard"/> applied to that read: anything that started update work in the meantime is skipped, and
+    /// so is a server with a user signed in, which Windows would refuse with ERROR_SHUTDOWN_USERS_LOGGED_ON.
     /// </summary>
     public static class RestartAction
     {
@@ -74,6 +75,7 @@ namespace WUGrid.Core.Restart
                 registry = Wmi.Registry(scope);
                 var o = new Observation { Ping = true };
                 ServerProbe.ReadState(scope, registry, Timeout, o);
+                o.SignedIn = SessionReader.Read(scope, Timeout);
                 var check = RestartGuard.Check(o, StateClassifier.Classify(o, since, DateTime.Now));
                 if (!check.Allowed) return new RestartResult(server, RestartOutcome.Skipped, check.Reason);
                 if (options.CheckOnly)

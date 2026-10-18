@@ -19,8 +19,9 @@ namespace WUGrid.Core.Restart
 
     /// <summary>
     /// Whether a server can be restarted now without cutting off update work. Pure: decided on what the last poll saw,
-    /// and decided again on a fresh read just before the restart is sent. A server with no restart pending can still be
-    /// restarted (an admin may want it anyway); it is only told.
+    /// and decided again on a fresh read just before the restart is sent — only that read lists who is signed in, which
+    /// blocks a restart that is not forced. A server with no restart pending can still be restarted (an admin may want it
+    /// anyway); it is only told.
     /// </summary>
     public static class RestartGuard
     {
@@ -37,6 +38,9 @@ namespace WUGrid.Core.Restart
                 return No($"update work running: {string.Join(", ", o.BusyProcesses)}");
             if (o.CbsRebootPending && o.CbsPackagesPending == 0)
                 return No("component cleanup running");
+            if (o.SignedIn.Length > 0)
+                return No($"signed in: {SignedIn(o.SignedIn)}. Windows refuses a restart that is not forced until they sign out " +
+                          "(a disconnected session counts too)");
 
             if (IsPending(s)) return Yes("a restart is pending: this one completes it");
             if (s.State == ServerState.NoRestartPending) return Yes("no restart pending: only if you want one anyway");
@@ -46,6 +50,11 @@ namespace WUGrid.Core.Restart
 
         /// <summary>For "tick all with a restart pending".</summary>
         public static bool IsPending(ServerStatus s) => s.State == ServerState.RestartPending || s.Flag.HasFlag(BackFlag.RebootPending);
+
+        /// <summary>"CONTOSO\admin (session 2, since 16-09-2026 08:46)", the first three and how many more.</summary>
+        static string SignedIn(UserSession[] sessions) =>
+            string.Join(", ", sessions.Take(3).Select(u => $"{u.User} (session {u.Id}{(u.Since.HasValue ? $", since {u.Since:dd-MM-yyyy HH:mm}" : "")})")) +
+            (sessions.Length > 3 ? $" and {sessions.Length - 3} more" : "");
 
         static RestartEligibility Yes(string note) => new RestartEligibility(true, note);
         static RestartEligibility No(string reason) => new RestartEligibility(false, reason);

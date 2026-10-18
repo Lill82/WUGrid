@@ -114,13 +114,13 @@ namespace WUGrid.Core.Reports
             {
                 h.Append("<div style=\"margin-top:8px\"><b>Services not running</b> <span class=\"muted\">")
                  .Append(v.ComparedToBaseline ? E($"({NotRunningOf(r)})") : "(Automatic, not running)").Append("</span><ul>");
-                foreach (var i in r.UnexpectedStops) h.Append("<li>").Append(E(ServiceLine(i))).Append("</li>");
+                foreach (var i in r.UnexpectedStops) h.Append("<li>").Append(E(ServiceLine(i))).Append(Advice(i)).Append("</li>");
                 h.Append("</ul></div>");
             }
             if (r.ExpectedStops.Count > 0)
             {
                 h.Append("<div class=\"muted\" style=\"margin-top:8px\"><b>Not running, expected</b> (marked by the operator)<ul>");
-                foreach (var x in r.ExpectedStops) h.Append("<li>").Append(E(ExpectedLine(x))).Append("</li>");
+                foreach (var x in r.ExpectedStops) h.Append("<li>").Append(E(ExpectedLine(x))).Append(Advice(x.Issue)).Append("</li>");
                 h.Append("</ul></div>");
             }
             if (v.RemovedServices.Count > 0)
@@ -138,6 +138,9 @@ namespace WUGrid.Core.Reports
             }
         }
 
+        static string Advice(ServiceIssue i) =>
+            i.Failure == null || i.Failure.Advice == "" ? "" : "<div class=\"muted\">" + E(i.Failure.Advice) + "</div>";
+
         static void Explain(StringBuilder h, int code)
         {
             foreach (var e in ErrorCatalog.Lookup(code))
@@ -153,7 +156,10 @@ namespace WUGrid.Core.Reports
             var s = i.Service;
             var line = $"{s.DisplayName} ({s.Name}): {s.State}" + (s.StartMode != "" ? $", {s.StartMode}" : "");
             var c = i.LastStartModeChange;
-            return c == null ? line : $"{line}; start type changed {c.Time:dd-MM HH:mm} by {(c.User != "" ? c.User : "?")}: {c.At(1)} → {c.At(2)}";
+            if (c != null) line += $"; start type changed {c.Time:dd-MM HH:mm} by {(c.User != "" ? c.User : "?")}: {c.At(1)} → {c.At(2)}";
+            var f = i.Failure;
+            if (f != null) line += "; " + f.Reason + (f.Earlier != "" ? ", " + f.Earlier : "");
+            return line;
         }
 
         /// <summary>"3 of 24 that ran before the restart": the flagged stops against the baseline's expected count.</summary>

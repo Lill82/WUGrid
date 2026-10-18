@@ -46,14 +46,26 @@ namespace WUGrid.Core.Probing
             return marked;
         }
 
+        /// <summary>WMI walks every record back to the start of the range: 124 s for 180 days of a 150 MB log (FIELD-NOTES).</summary>
+        public static readonly TimeSpan EarlierBootsTimeout = TimeSpan.FromMinutes(5);
+
         /// <param name="afterRecord">0 for everything since <paramref name="since"/>; otherwise only records after this one.</param>
-        public static List<EventRecord> ReadEvents(ManagementScope scope, DateTime since, long afterRecord)
+        public static List<EventRecord> ReadEvents(ManagementScope scope, DateTime since, long afterRecord) =>
+            Records(scope, VerificationBuilder.EventCodes, $"TimeGenerated >= '{ManagementDateTimeConverter.ToDmtfDateTime(since)}'" +
+                                                           (afterRecord > 0 ? $" AND RecordNumber > {afterRecord}" : ""), EventTimeout);
+
+        /// <summary>Boots and service failures from <paramref name="from"/> up to the cut-off <paramref name="to"/>: slow on a
+        /// large log, so only on request.</summary>
+        public static List<EventRecord> ReadEarlierBoots(ManagementScope scope, DateTime from, DateTime to) =>
+            Records(scope, VerificationBuilder.EarlierBootCodes, $"TimeGenerated >= '{ManagementDateTimeConverter.ToDmtfDateTime(from)}' " +
+                                                                 $"AND TimeGenerated < '{ManagementDateTimeConverter.ToDmtfDateTime(to)}'", EarlierBootsTimeout);
+
+        static List<EventRecord> Records(ManagementScope scope, IEnumerable<int> eventCodes, string where, TimeSpan timeout)
         {
-            var codes = string.Join(" OR ", VerificationBuilder.EventCodes.Select(c => "EventCode=" + c));
+            var codes = string.Join(" OR ", eventCodes.Select(c => "EventCode=" + c));
             var wql = "SELECT EventCode, SourceName, TimeGenerated, InsertionStrings, User, RecordNumber FROM Win32_NTLogEvent " +
-                      $"WHERE Logfile='System' AND TimeGenerated >= '{ManagementDateTimeConverter.ToDmtfDateTime(since)}' AND ({codes})" +
-                      (afterRecord > 0 ? $" AND RecordNumber > {afterRecord}" : "");
-            return Wmi.Query(scope, wql, EventTimeout)
+                      $"WHERE Logfile='System' AND {where} AND ({codes})";
+            return Wmi.Query(scope, wql, timeout)
                       .Select(mo => new EventRecord(
                           (string)mo["SourceName"],
                           Convert.ToInt32(mo["EventCode"]),

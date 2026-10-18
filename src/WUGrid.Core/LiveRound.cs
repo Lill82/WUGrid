@@ -67,6 +67,13 @@ namespace WUGrid.Core
                 if (watchers.TryGetValue(name, out var w)) w.RequestVerify();
         }
 
+        /// <summary>Read the server's earlier boots in the background: minutes on a large log; applied when done.</summary>
+        public void RequestEarlierBoots(string name)
+        {
+            lock (gate)
+                if (watchers.TryGetValue(name, out var w)) w.RequestEarlierBoots();
+        }
+
         public RoundSnapshot Snapshot()
         {
             List<KeyValuePair<string, Observation>> observations;
@@ -104,6 +111,13 @@ namespace WUGrid.Core
             public void RequestVerify()
             {
                 probe.RequestVerify();
+                wake = true;
+            }
+
+            // Poll now to show it reading, and again once the records are in
+            public void RequestEarlierBoots()
+            {
+                probe.RequestEarlierBoots(() => wake = true);
                 wake = true;
             }
 

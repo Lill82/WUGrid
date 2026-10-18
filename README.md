@@ -35,7 +35,11 @@ wugrid-cli error 0x800F0840                 explain an error code
 - **Verification**: once a server is back, WUGrid reads its System log (since the cut-off) and services and flags what a
   green restart can hide: an **update that failed** (Windows Update event 20, error code explained — e.g. stacked
   cumulative updates failing with `0x800F0840`) and a **service not running** that ran before the restart (with who
-  changed its start type). A service marked for deletion before the restart (a role or application removal that could
+  changed its start type, and why it did not start: the Service Control Manager's own events — timed out at start, a
+  service it depends on, its account could not log on, its own error code — and whether it failed the same way at the
+  boots before, which says it is the service's own problem rather than the restart's; boots from before the cut-off are
+  read on request, **Earlier boots** in the details window or `verify --earlier-boots`, as months of log take minutes
+  to read over WMI). A service marked for deletion before the restart (a role or application removal that could
   not finish while it ran) is expected to go, and is reported as removed, not as stopped, so the counts reconcile.
   A stop you know about (a role being removed) can be marked **expected** (Expected… in the details window or the
   toolbar, or a line in `%APPDATA%\WUGrid\expected.txt`): it stays visible with your reason but no longer flags the
@@ -54,8 +58,10 @@ wugrid-cli error 0x800F0840                 explain an error code
   - only servers whose last poll shows no update work can be ticked (not while `TiWorker.exe`, `TrustedInstaller.exe`,
     `msiexec.exe`, `wusa.exe`, `dism.exe`, `SetupHost.exe` run, during component cleanup, or while installing before a
     shutdown already under way), and each is checked again just before the restart is sent;
-  - **never forced** (`Win32ShutdownTracker`, reboot without force): running programs can delay or cancel it; an optional
-    warning (default 60 s) shows to logged-on users and the restart can be aborted on the server with `shutdown /a`;
+  - **never forced** (`Win32ShutdownTracker`, reboot without force): running programs can delay or cancel it, and
+    Windows refuses it while a user is signed in, even in a disconnected session. The check just before sending lists
+    who is signed in and skips that server, naming the user, the session and since when (**Check only** shows it too);
+  - an optional warning period (default 60 s) during which the restart can be aborted on the server with `shutdown /a`;
   - confirmed before sending; **Check only** runs everything except the restart call;
   - every request and result is appended to `%APPDATA%\WUGrid\audit.jsonl` (who, from where, which server, options,
     outcome) and logged in the event pane; the comment lands in System event 1074 on the server.

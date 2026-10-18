@@ -109,9 +109,9 @@ namespace WUGrid.Gui
             var note = new Label
             {
                 AutoSize = true, ForeColor = Palette.MutedText, MaximumSize = new Size(Px(940), 0),
-                Text = "Not forced: running programs can delay or cancel the restart. Logged-on users see the warning, and the restart can be " +
-                       "aborted on the server with shutdown /a until it runs. Each server is checked again just before: one that started update " +
-                       $"work is skipped. Everything is recorded in {(preview ? @"%APPDATA%\WUGrid\audit.jsonl" : audit.Path)}.",
+                Text = "Not forced: running programs can delay or cancel the restart, and Windows refuses it while a user is signed in, even " +
+                       "disconnected. Until it runs it can be aborted on the server with shutdown /a. Each server is checked again just before: one " +
+                       $"that started update work or has a user signed in is skipped. Everything is recorded in {(preview ? @"%APPDATA%\WUGrid\audit.jsonl" : audit.Path)}.",
             };
             panel.Controls.Add(note, 0, 1);
             panel.SetColumnSpan(note, 4);
@@ -187,8 +187,8 @@ namespace WUGrid.Gui
             if (!checkOnlyRun)
             {
                 var text = $"Restart {(names.Count == 1 ? "this server" : $"these {names.Count} servers")} now?\n\n{string.Join(", ", names)}\n\n" +
-                           $"Not forced; {(options.WarningSeconds > 0 ? $"{options.WarningSeconds} s warning to logged-on users" : "no warning")}. " +
-                           "Each server is checked again just before; one that started update work is skipped.";
+                           $"Not forced; {(options.WarningSeconds > 0 ? $"{options.WarningSeconds} s warning" : "no warning")}. " +
+                           "Each server is checked again just before; one that started update work or has a user signed in is skipped.";
                 if (MessageBox.Show(this, text, "Reboot servers", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) != DialogResult.Yes)
                     return;
             }

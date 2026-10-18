@@ -74,16 +74,16 @@ namespace WUGrid.Core
                 if (v.StoppedServices.Count > 0)
                 {
                     // A stop the operator marked as expected (a role being removed) is noted, not flagged
-                    var stopped = v.StoppedServices.Select(i => i.Service).ToList();
-                    var unexpected = stopped.Where(s => !IsExpected(s.Name, expectedStops)).ToList();
-                    var expected = stopped.Where(s => IsExpected(s.Name, expectedStops)).ToList();
+                    var unexpected = v.StoppedServices.Where(i => !IsExpected(i.Service.Name, expectedStops)).ToList();
+                    var expected = v.StoppedServices.Where(i => IsExpected(i.Service.Name, expectedStops)).ToList();
                     if (unexpected.Count > 0)
                     {
                         flags |= BackFlag.ServiceStopped;
-                        notes.Add(unexpected.Count == 1 ? $"service not running: {unexpected[0].DisplayName}" : $"{unexpected.Count} services not running");
+                        notes.Add(unexpected.Count == 1 ? $"service not running: {unexpected[0].Service.DisplayName}{Why(unexpected[0].Failure)}"
+                                                        : $"{unexpected.Count} services not running");
                     }
                     if (expected.Count > 0)
-                        expectedNote = expected.Count == 1 ? $"expected stop: {expected[0].DisplayName}" : $"{expected.Count} expected stops";
+                        expectedNote = expected.Count == 1 ? $"expected stop: {expected[0].Service.DisplayName}" : $"{expected.Count} expected stops";
                 }
             }
 
@@ -99,6 +99,11 @@ namespace WUGrid.Core
 
         static bool IsExpected(string service, IReadOnlyCollection<string> expected) =>
             expected != null && expected.Contains(service, StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>" (timed out at start; also at all 4 boots before)": a service that fails at every boot is its own problem,
+        /// one that fails for the first time points at the restart (FIELD-NOTES, 18-10 evening).</summary>
+        static string Why(Verification.ServiceFailure f) =>
+            f == null ? "" : $" ({f.ShortReason}{(f.ShortEarlier != "" ? "; " + f.ShortEarlier : "")})";
 
         static string Join(string note, string extra) => extra == null ? note : note == "" ? extra : note + "; " + extra;
 

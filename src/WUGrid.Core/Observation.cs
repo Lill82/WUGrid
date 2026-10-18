@@ -46,6 +46,10 @@ namespace WUGrid.Core
         /// <summary>WindowsUpdate\Auto Update\RebootRequired key exists.</summary>
         public bool WuRebootRequired { get; set; }
 
+        /// <summary>Users signed in, one per session, active or disconnected: Windows refuses a restart that is not forced
+        /// while there are any. Read only just before a restart, not by the poll; empty when none, or not read.</summary>
+        public UserSession[] SignedIn { get; set; } = new UserSession[0];
+
         /// <summary>"17763.8880" (build.UBR) as last read, or null.</summary>
         public string Build { get; set; }
 
@@ -57,5 +61,63 @@ namespace WUGrid.Core
 
         /// <summary>Why the last verification pass failed, or null.</summary>
         public string VerificationError { get; set; }
+
+        /// <summary>The read of earlier boots, when asked for (details window, verify --earlier-boots); null otherwise.</summary>
+        public EarlierBootsRead EarlierBoots { get; set; }
+    }
+
+    /// <summary>
+    /// A read of the System log before the cut-off, for the boots there and the services' failures after them: whether a
+    /// service that failed to start now failed at those boots too. WMI walks every record in the range, two minutes for
+    /// 150 MB, so it runs only when asked for, in the background.
+    /// </summary>
+    public sealed class EarlierBootsRead
+    {
+        /// <summary>How far back before the cut-off it reads.</summary>
+        public static readonly TimeSpan Lookback = TimeSpan.FromDays(180);
+
+        public EarlierBootsRead(DateTime from, DateTime to, DateTime? finished = null, string error = null)
+        {
+            From = from;
+            To = to;
+            Finished = finished;
+            Error = error;
+        }
+
+        /// <summary>The oldest record asked for.</summary>
+        public DateTime From { get; }
+
+        /// <summary>The cut-off it was read for: records from then on come with every verification pass.</summary>
+        public DateTime To { get; }
+
+        /// <summary>When it ended, well or not; null while reading.</summary>
+        public DateTime? Finished { get; }
+
+        /// <summary>Why it failed, or null.</summary>
+        public string Error { get; }
+
+        public bool Reading => Finished == null;
+
+        public EarlierBootsRead Done(string error) => new EarlierBootsRead(From, To, DateTime.Now, error);
+    }
+
+    /// <summary>A session on the server with a user signed in.</summary>
+    public sealed class UserSession
+    {
+        public UserSession(int id, string user, DateTime? since)
+        {
+            Id = id;
+            User = user ?? "";
+            Since = since;
+        }
+
+        /// <summary>Windows session ID, the one quser and logoff take.</summary>
+        public int Id { get; }
+
+        /// <summary>DOMAIN\user as the server names it, or the SID when it could not.</summary>
+        public string User { get; }
+
+        /// <summary>When the session's sign-in processes started: about when the user signed in.</summary>
+        public DateTime? Since { get; }
     }
 }

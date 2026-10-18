@@ -146,16 +146,20 @@ namespace WUGrid.Core.Verification
     /// <summary>A service that ran before the restart (or should be running) and does not now.</summary>
     public sealed class ServiceIssue
     {
-        public ServiceIssue(ServiceRecord service, EventRecord lastStartModeChange)
+        public ServiceIssue(ServiceRecord service, EventRecord lastStartModeChange, ServiceFailure failure = null)
         {
             Service = service;
             LastStartModeChange = lastStartModeChange;
+            Failure = failure;
         }
 
         public ServiceRecord Service { get; }
 
         /// <summary>The latest System event 7040 for this service since the cut-off, if any: who changed its start type.</summary>
         public EventRecord LastStartModeChange { get; }
+
+        /// <summary>Why it is not running, when the Service Control Manager logged a failure for it at this boot.</summary>
+        public ServiceFailure Failure { get; }
     }
 
     /// <summary>What a server's restart round came to, for its current boot.</summary>

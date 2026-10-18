@@ -42,7 +42,8 @@ the targeting pack. The legacy scripts are Windows PowerShell 5.1 — see the 5.
 - `src/WUGrid.Core` — observation model, `StateClassifier`, `RoundSnapshot` / `IRoundSource`, `RoundTracker`
   (transitions, alarms, all-clean), `ExpectedList` (expected service stops + list file), `LiveRound` (thread per
   server), `Probing/` (`ServerProbe` incl. baseline and
-  verification passes, `VerificationReader`, `AccessCheck`, WMI over DCOM), `Verification/` (records +
+  verification passes, `VerificationReader`, `SessionReader` (who is signed in, read before a restart), `AccessCheck`,
+  WMI over DCOM), `Verification/` (records +
   `VerificationBuilder`, pure), `Reports/` (HTML/CSV), `Errors/` (catalog), `Restart/` (guard, action, audit log),
   `ServerList`, `Demo/` (scripted round).
 - `src/WUGrid.Cli` — `wugrid-cli.exe` (`watch`: console grid / `--headless` events, `--state` JSON, `--events` JSONL;
@@ -72,5 +73,8 @@ the targeting pack. The legacy scripts are Windows PowerShell 5.1 — see the 5.
 - M3 first cut: Reboot window (`Restart/`: `RestartGuard`, `RestartAction`, `AuditLog`), never forced, check-only.
   First real run 2026-10-18: five servers restarted from the Reboot window in two batches and verified end to end
   (FIELD-NOTES). Expected service stops (`ExpectedList`, `expected.txt`, Expected… window, `--expected`) since 0.7.0.
-  Open: waves, protect list, CLI, SCM start-failure events for flagged services.
+  Since 0.8.0 a server with a user signed in is skipped, naming who (Windows refuses a restart that is not forced while
+  anyone is signed in: 1191). Since 0.9.0 a service not running says why (Service Control Manager events 7000–7038) and
+  whether it failed at the boots before; boots before the cut-off only on request (Earlier boots, `verify
+  --earlier-boots`: minutes over WMI). Open: waves, protect list, CLI.
 - Decide on event IDs + source + insertion strings (see `VerificationBuilder`); the Setup log is not readable over WMI.

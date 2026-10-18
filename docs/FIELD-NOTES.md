@@ -92,8 +92,10 @@ SRV-M, from the headless watch (polled every 5 s):
   (Operating System: Hotfix, planned), comment "Restart requested from WUGrid by DOMAIN\operator on WORKSTATION". The
   details window and the report show it, and the server's own log names who did it.
 - **The services pass found something real on all five**: Windows Internal Database stopped after the restart (SCM event
-  7024, service-specific error) and everything that depends on it timed out at start (events 7000/7009: WSUS, two
-  print-management services). The operator knew why — the WSUS removal — so the flags were right but expected:
+  7024, service-specific error 17113: its `master.mdf` was gone) and WSUS, whose database it holds, failed to start with
+  it (events 7000/7009). Two print-management services timed out at start too, but they do not depend on it: they do so
+  at every boot (see "Services that time out at every boot"). The operator knew why the database was gone — the WSUS
+  removal — so those flags were right but expected:
   - a server can be flagged for a reason the operator already knows; an **"expected" acknowledgement** per service or
     per server lets the round go clean (added in 0.7.0: **Expected…**, and the `expected.txt` list file);
   - the **cause sits in SCM events 7000/7009/7022/7023/7024/7031/7034 since boot**, which WUGrid does not read yet;
@@ -112,6 +114,63 @@ SRV-M, from the headless watch (polled every 5 s):
   the restart. The GUI, open since before the restart, had a baseline for all five.
 - **`watch --headless` ends only when every server is back clean**; with a flag that sticks it runs until Ctrl+C. Fine
   at a terminal; an unattended run wants "exit once every server has settled, status 1 if any is flagged" (open).
+
+## Restarts refused while users are signed in (18-10, afternoon)
+
+A second batch of five restarts from the Reboot window (0.7.0) at 14:16: two were sent; for the other three
+`Win32ShutdownTracker` returned **1191**, `ERROR_SHUTDOWN_USERS_LOGGED_ON` (0x800704A7). Each failed the same way on two
+or three more tries, including one right after a Check only that had said "would restart" for all three.
+
+- **Windows refuses a restart that is not forced while any user is signed in, active or disconnected.** WUGrid's call
+  arrives as a network logon with no session of its own, so every interactive session is "other users"; only a forced
+  restart would sign them out, and WUGrid never forces. The morning's five went because nobody was signed in.
+- What blocked them: on one server the domain's Administrator account had been signed in over Remote Desktop for a
+  month, and that session was reconnected from the admin workstation between two tries — closing the window would only
+  have disconnected it again. The other two had disconnected sessions idle for 2, 38 and 130 days (two accounts).
+- Check only could not see it: the guard looked only at update work, and the refusal comes from the shutdown call.
+  **Since 0.8.0 the check just before the restart lists who is signed in** and skips the server, naming the user, the
+  session and since when. A session counts when one of its processes (`Win32_Process`, sessions above 0) belongs to a
+  user account, decided on the owner SID (S-1-5-21-…) so it holds in any language; the logon screen's own processes
+  (csrss, winlogon, LogonUI, dwm, fontdrvhost) are not asked about. The sign-in time is the oldest of the processes
+  started at sign-in (sihost, taskhostw, rdpclip, explorer): explorer alone would mislead, as in the month-old session it
+  had started that afternoon. The poll does not read
+  sessions (an owner lookup per session is too much every few seconds), so the Reboot window can still tick such a
+  server.
+- The fix is on the server: the user signs out (Start → Sign out; closing Remote Desktop only disconnects), or, once the
+  session's owner agrees, `logoff <ID> /server:<name>` ends it, closing what is open without saving.
+  `quser /server:<name>` shows the sessions with their state and idle time, which WMI does not give.
+- WUGrid counts any user signed in, the operator's own account too; whether Windows lets the caller's own sessions
+  through is untested.
+
+## Services that time out at every boot (18-10, evening)
+
+After the afternoon's restarts the operator had to start two print-management services by hand (a print server and its
+terminal service for the printers) on several servers. Checked on two of them by hand, reading the System log:
+
+- **Not caused by the restart or the updates.** Both services time out at start — event 7009 ("waiting for the service
+  to connect", 30000 ms) then 7000 — at nearly every boot the log holds: five of six boots since March on one server,
+  all four since April of the year before on the other. ADWS (Active Directory Web Services) does the same at every
+  boot on both, and was running again by the time WUGrid checked. The print services depend on their own database
+  (Firebird) and web server, not on Windows Internal Database.
+- 7009 means the process did not even connect to the Service Control Manager within 30 s; started later by hand it
+  runs. Too slow to start while the server is busy booting. **The fix belongs to the server, not to WUGrid**:
+  Automatic (Delayed Start) for those services (`sc.exe \\<server> config <service> start= delayed-auto`), a longer
+  `ServicesPipeTimeout` for every service (needs a restart), or the vendor.
+- **What WUGrid does about it (0.9.0), for any service**: for one not running, it reads the Service Control Manager's
+  failure events (7000, 7001, 7009, 7011, 7022, 7023, 7024, 7031, 7034, 7038) at this boot and the boots before, and
+  says "timed out at start; also at all 4 boots before". Every boot means the service's own problem — start it by hand
+  now, fix it outside the round; a first failure points at the restart. Keyed on event IDs and data fields, so it holds
+  in any language: the error comes as a raw field (`%%1053`), and the service by name or, in some events (7023 here),
+  by display name. It stays flagged rather than becoming an expected stop: a stopped print service matters.
+- **Reading months of log is the expensive part.** On one of these servers (System log 150 MB, 396,500 records since
+  March) a `Win32_NTLogEvent` query for boots and these failures over 180 days took **124 s**: WMI walks every record in
+  the range. So the boots after the cut-off come free with each verification pass, and older ones are read only when
+  asked (Earlier boots in the details window, `verify --earlier-boots`), in the background on a connection of their own.
+- Seen on the same two servers afterwards with 0.9.0: Windows Internal Database "stopped with its own error 17113
+  (event 7024), also at the boot before", WSUS timed out at start (7009) on one and crashed later (7031) on the other —
+  both marked expected by then, which keeps the reason visible without flagging.
+- Windows Internal Database (above) fails the same way at every boot until the feature itself is removed: its data
+  files are gone, its service is still installed and Automatic.
 
 ## PowerShell 5.1 traps hit while writing these
 

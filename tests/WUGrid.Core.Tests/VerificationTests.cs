@@ -34,8 +34,8 @@ namespace WUGrid.Core.Tests
         static readonly EventRecord KernelBoot20 = new EventRecord("Microsoft-Windows-Kernel-Boot", 20, Boot, 4, @"NT AUTHORITY\SYSTEM", "true", "true", "44", "2");
 
         static ServerVerification Build(IEnumerable<EventRecord> events, IReadOnlyList<ServiceRecord> services = null, Baseline baseline = null,
-                                        double upMinutes = 20, bool tiWorker = false) =>
-            VerificationBuilder.Build(Boot.AddMinutes(upMinutes), Boot, "17763.8880", events, services, baseline, tiWorker);
+                                        double upMinutes = 20, bool tiWorker = false, IEnumerable<EventRecord> earlier = null) =>
+            VerificationBuilder.Build(Boot.AddMinutes(upMinutes), Boot, "17763.8880", events, services, baseline, tiWorker, earlier);
 
         [Fact]
         public void FailedCumulativeUpdate_IsReadFromEvent20()
@@ -122,6 +122,115 @@ namespace WUGrid.Core.Tests
             Assert.False(v.ServicesChecked);
             Assert.Empty(v.StoppedServices);
         }
+
+        // Service Control Manager layouts as read from a real Server 2019 (es-ES) on 18-10, names changed: errors arrive as
+        // "%%1053" (Win32 1053, no answer in time), 7009 starts with the timeout, 7023 can carry the display name instead
+        static readonly ServiceRecord[] PrintServer =
+        {
+            new ServiceRecord("PrintSvc", "Print Management Server", "Stopped", "Auto"),
+            new ServiceRecord("W32Time", "Windows Time", "Running", "Auto"),
+        };
+
+        static EventRecord Scm(int code, DateTime time, long record, params string[] strings) =>
+            new EventRecord(ServiceControlManager, code, time, record, "", strings);
+
+        static EventRecord BootedAt(DateTime boot, long record) =>
+            new EventRecord(KernelGeneral, 12, boot.AddSeconds(1), record, @"NT AUTHORITY\SYSTEM",
+                            "10", "0", "17763", "8641", "0", "0", boot.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
+
+        static IEnumerable<EventRecord> TimedOutAfter(DateTime boot, long record) => new[]
+        {
+            Scm(7009, boot.AddMinutes(1.6), record, "30000", "PrintSvc"),
+            Scm(7000, boot.AddMinutes(1.6), record + 1, "PrintSvc", "%%1053"),
+        };
+
+        static ServiceFailure FailureOf(ServerVerification v) => Assert.Single(v.StoppedServices).Failure;
+
+        [Fact]
+        public void TimeoutAtStart_IsTheReason_As7009SaysHowLong()
+        {
+            var f = FailureOf(Build(TimedOutAfter(Boot, 50).Prepend(BootEvent), PrintServer));
+            Assert.Equal(7009, f.Event.Code);
+            Assert.Equal(FailureKind.Timeout, f.Kind);
+            Assert.Equal("timed out at start: no answer within 30 s (event 7009)", f.Reason);
+            Assert.Equal(0, f.EarlierBoots);
+            Assert.Equal("", f.Earlier);
+            Assert.StartsWith("Too slow to start while the server boots", f.Advice);
+        }
+
+        [Fact]
+        public void ServiceSpecificError_IsTheServicesOwnCode()
+        {
+            var f = FailureOf(Build(new[] { BootEvent, Scm(7024, Boot.AddMinutes(1.8), 60, "PrintSvc", "%%17113") }, PrintServer));
+            Assert.Equal("stopped with its own error 17113 (event 7024)", f.Reason);
+            Assert.Equal("stopped with an error", f.ShortReason);
+        }
+
+        [Fact]
+        public void EventNamingTheDisplayName_StillMatches() =>
+            Assert.Equal("stopped with an error: access denied (event 7023)",
+                         FailureOf(Build(new[] { BootEvent, Scm(7023, Boot.AddMinutes(2), 60, "Print Management Server", "%%5") }, PrintServer)).Reason);
+
+        [Fact]
+        public void StoppedWithoutAFailureEvent_HasNoReason() =>   // stopped by someone or disabled: event 7040 says who
+            Assert.Null(FailureOf(Build(new[] { BootEvent }, PrintServer)));
+
+        [Fact]
+        public void FailureBeforeThisBoot_IsNotThisBootsReason() =>
+            Assert.Null(FailureOf(Build(new[] { Scm(7034, Boot.AddMinutes(-2), 2, "PrintSvc", "1"), BootEvent }, PrintServer)));
+
+        [Fact]
+        public void EarlierBootInTheRound_IsCounted()
+        {
+            var first = Boot.AddMinutes(-80);
+            var events = new[] { BootedAt(first, 1) }.Concat(TimedOutAfter(first, 2)).Append(BootEvent).Concat(TimedOutAfter(Boot, 50));
+            var f = FailureOf(Build(events, PrintServer));
+            Assert.Equal((1, 1), (f.EarlierBoots, f.EarlierFailed));
+            Assert.True(f.EveryBoot);
+            Assert.Equal($"also at the boot before ({first:dd-MM HH:mm})", f.Earlier);
+            Assert.StartsWith("It failed after every boot before too", f.Advice);
+        }
+
+        [Fact]
+        public void EarlierBootsReadOnRequest_CountOnlyFailuresSoonAfterEachBoot()
+        {
+            DateTime b1 = Boot.AddDays(-150), b2 = Boot.AddDays(-70), b3 = Boot.AddDays(-30);
+            var earlier = new[] { BootedAt(b1, 1), BootedAt(b2, 3), BootedAt(b3, 5) }
+                .Concat(TimedOutAfter(b1, 100))
+                .Append(Scm(7034, b2.AddHours(3), 200, "PrintSvc", "1"))   // hours after its boot: not failing at that boot
+                .Concat(TimedOutAfter(b3, 300));
+            var f = FailureOf(Build(TimedOutAfter(Boot, 50).Prepend(BootEvent), PrintServer, earlier: earlier));
+            Assert.Equal((3, 2), (f.EarlierBoots, f.EarlierFailed));
+            Assert.Equal($"also at 2 of the 3 boots before since {b1:dd-MM-yyyy}", f.Earlier);
+            Assert.Equal("also at 2 of 3 boots before", f.ShortEarlier);
+        }
+
+        [Fact]
+        public void NoFailureAtTheBootsBefore_PointsAtThisRestart()
+        {
+            var earlier = new[] { BootedAt(Boot.AddDays(-60), 1), BootedAt(Boot.AddDays(-30), 2) };
+            var f = FailureOf(Build(TimedOutAfter(Boot, 50).Prepend(BootEvent), PrintServer, earlier: earlier));
+            Assert.Equal("first time in 3 boots", f.ShortEarlier);
+            Assert.StartsWith("It did not fail after the boots before", f.Advice);
+        }
+
+        [Theory]
+        [InlineData(7000, new[] { "PrintSvc", "%%1069" }, FailureKind.Logon, "could not log on")]
+        [InlineData(7038, new[] { "PrintSvc", @"CONTOSO\svc-print", "%%1326" }, FailureKind.Logon, "could not log on")]
+        [InlineData(7001, new[] { "PrintSvc", "Print Database", "%%1053" }, FailureKind.Dependency, "a service it needs did not start")]
+        [InlineData(7031, new[] { "PrintSvc", "1", "300000", "1", "Reiniciar el servicio" }, FailureKind.Ended, "terminated unexpectedly")]
+        [InlineData(7022, new[] { "PrintSvc" }, FailureKind.Timeout, "hung at start")]
+        [InlineData(7000, new[] { "PrintSvc", "%%2" }, FailureKind.Error, "failed to start")]
+        public void EachFailureEvent_ReadsAsItsKind(int code, string[] strings, FailureKind kind, string shortReason)
+        {
+            var f = FailureOf(Build(new[] { BootEvent, Scm(code, Boot.AddMinutes(2), 60, strings) }, PrintServer));
+            Assert.Equal((kind, shortReason), (f.Kind, f.ShortReason));
+        }
+
+        [Fact]
+        public void LogonFailure_NamesTheAccount() =>
+            Assert.Equal(@"could not log on as CONTOSO\svc-print: wrong user name or password (event 7038)",
+                         FailureOf(Build(new[] { BootEvent, Scm(7038, Boot.AddMinutes(2), 60, "PrintSvc", @"CONTOSO\svc-print", "%%1326") }, PrintServer)).Reason);
 
         [Fact]
         public void Baseline_KeepsRunningAutomaticServicesOnly()
@@ -215,6 +324,25 @@ namespace WUGrid.Core.Tests
             Assert.Equal(BackFlag.ServiceStopped, s.Flag);
             Assert.Equal("service not running: Application Database", s.Note);
         }
+
+        static ServiceIssue TimesOutAtEveryBoot() =>
+            new ServiceIssue(new ServiceRecord("PrintSvc", "Print Management Server", "Stopped", "Auto"), null,
+                             new ServiceFailure(new EventRecord(ServiceControlManager, 7009, Boot.AddMinutes(2), 9, "", "30000", "PrintSvc"),
+                                                4, 4, new DateTime(2026, 5, 8, 7, 31, 0)));
+
+        // Field notes 18-10 evening: a service that fails at every boot is its own problem, not the restart's
+        [Fact]
+        public void StoppedService_ThatFailsAtEveryBoot_SaysSoInTheNote()
+        {
+            var s = StateClassifier.Classify(Back(Verified(Boot, services: new[] { TimesOutAtEveryBoot() })), Since, Boot.AddMinutes(30));
+            Assert.Equal(BackFlag.ServiceStopped, s.Flag);
+            Assert.Equal("service not running: Print Management Server (timed out at start; also at all 4 boots before)", s.Note);
+        }
+
+        [Fact]
+        public void ServiceLine_SaysWhyItDidNotStart_AndHowItFaredBefore() =>
+            Assert.Equal("Print Management Server (PrintSvc): Stopped, Auto; timed out at start: no answer within 30 s (event 7009), " +
+                         "also at all 4 boots before since 08-05-2026", RoundReport.ServiceLine(TimesOutAtEveryBoot()));
 
         [Fact]
         public void FlagsCombine()

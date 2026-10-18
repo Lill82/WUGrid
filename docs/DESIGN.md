@@ -122,7 +122,21 @@ Setup event 3) will show its codes through the same catalog.
   `WindowsUpdateClient` 19/20 (install result per update; last result wins; event 20's first field is the HRESULT),
   `User32` 1074 (who restarted, process, reason code, comment), `Kernel-General` 12 (each boot and the build.UBR it came
   up on), `EventLog` 6008 (unexpected shutdown), `Service Control Manager` 7040 (who changed a service's start type —
-  only used to explain a service found not running; BITS flips its own start type every few minutes).
+  only used to explain a service found not running; BITS flips its own start type every few minutes), and its failure
+  events 7000/7001/7009/7011/7022/7023/7024/7031/7034/7038 (why a service is not running — next bullet).
+- **Why a service did not start** (0.9.0): for each service found not running, the Service Control Manager's latest
+  failure for it since the boot — timed out at start (7009 carries the limit, 30 s by default; the 7000 logged with it
+  defers to it), a service it depends on (7001), its account could not log on (7038), stopped with a Win32 error or its
+  own code (7023/7024), terminated unexpectedly (7031/7034). The error arrives as a raw data field (`%%1053`), read as a
+  number; the service is matched by name or display name (the Service Control Manager logs either). None means someone
+  stopped or disabled it (7040 says who). Then **the boots before**: a failure within 30 min of an earlier boot
+  (Kernel-General 12) counts as failing at that boot; "also at all 4 boots before" is the service's own problem (start it
+  by hand, fix it outside the round — Automatic (Delayed Start) for a timeout), a first failure points at the restart.
+  Boots after the cut-off come with the verification's own events. Boots before it need the log read back months, which
+  WMI does by walking every record (124 s for 180 days of a 150 MB, 396,000-record log — FIELD-NOTES), so only on
+  request and in the background, over a connection of its own: **Earlier boots** in the details window,
+  `verify --earlier-boots`. The grid note carries the short form (`service not running: X (timed out at start; also at
+  all 4 boots before)`), the details window and report add what to do, the state JSON lists `serviceFailures`.
 - The Setup log (servicing events 2/3) is not a classic log, so `Win32_NTLogEvent` cannot read it over DCOM. Updates
   installed through Windows Update/WSUS report through events 19/20 anyway.
 - New BACK flags: **update failed** (an update whose last result is a failure, with the code explained) and **service
@@ -139,9 +153,9 @@ checks, `--html` / `--csv`).
 
 Built (GUI **Reboot…**). `Win32_OperatingSystem.Win32ShutdownTracker` over DCOM, **never forced**: flags 2 (reboot
 without `EWX_FORCE`), reason `0x80020011` (Operating System: Hotfix, planned), a comment naming the operator and
-workstation (lands in System event 1074), and a warning period (0–300 s, default 60) during which logged-on users are told
-and the restart can be aborted on the server with `shutdown /a`. The connection enables the caller's privileges
-(SeRemoteShutdownPrivilege); observing never does.
+workstation (lands in System event 1074), and a warning period (0–300 s, default 60) during which the restart can be
+aborted on the server with `shutdown /a`. The connection enables the caller's privileges (SeRemoteShutdownPrivilege);
+observing never does.
 
 - `RestartGuard` (pure) decides who can be ticked: reachable with WMI answering, not INSTALLING (a restart already under
   way), no update/install process running (`TiWorker.exe`, `TrustedInstaller.exe`, `wusa.exe`, `dism.exe`,
@@ -149,6 +163,13 @@ and the restart can be aborted on the server with `shutdown /a`. The connection 
   cleanup. A pending reboot or an earlier restart in the round is shown, not blocking.
 - `RestartAction` reads the server again over its own connection right before sending and applies the guard to that read;
   a server that started update work is skipped. Check-only mode stops before the call.
+- **Users signed in block it** (0.8.0): Windows refuses a restart that is not forced while any user is signed in, active
+  or disconnected (`ERROR_SHUTDOWN_USERS_LOGGED_ON`, 1191 — FIELD-NOTES 18-10). That read also lists the sessions
+  (`SessionReader`: `Win32_Process` in sessions above 0; a session counts when a process's owner SID is a user account's,
+  S-1-5-21-… or S-1-12-1-…; the logon screen's processes are not asked about) and the guard skips the server, naming
+  user, session and sign-in time. Not read by the poll — an owner lookup per session is too much every few seconds — so
+  the Reboot window can tick such a server and Check only shows why it would be skipped. Any user counts, the operator's
+  own account too.
 - Confirmation lists the servers; results go to the event pane and to `%APPDATA%\WUGrid\audit.jsonl` (append-only JSON
   lines: time, operator, workstation, server, options, outcome, code).
 
@@ -170,8 +191,8 @@ ConfigMgr or other management agent is assumed.
 - **Waves**: ordered server groups. The next wave starts when the previous one is all BACK clean, or on the operator's
   go; a failure stops the round.
 - **Guards**, re-checked per server immediately before acting: reachable; not already restarting or installing; no
-  other WUGrid action in flight; not on the protect list (servers WUGrid must never act on); optional checks such as
-  interactive sessions.
+  other WUGrid action in flight; not on the protect list (servers WUGrid must never act on); for a restart, nobody
+  signed in (built: Windows refuses a restart that is not forced otherwise).
 - **Confirmation**: GUI dialog listing servers and action; CLI prints the plan and requires typed confirmation, or an
   explicit `--yes` together with a server-count limit for unattended runs. `--what-if` everywhere.
 - **Audit**: JSONL, append-only — time, operator, workstation, run id, action, target, parameters, outcome.
@@ -183,7 +204,7 @@ ConfigMgr or other management agent is assumed.
 | **M0** Foundation — done | Solution, build, tests; anonymised field notes and fixtures; licence; CI (GitHub Actions, windows runner); first commit | builds from a clean clone; no estate names in tracked files |
 | **M1** Watch (read-only) — built | Probe, monitor, live list reload, transitions + alarms log, state JSON; `wugrid-cli watch` (console grid, `--headless` events); GUI grid. Open: the parity run | parity with the legacy grid against real servers |
 | **M2** Verify (read-only) — done | Patch-level outcome, services baseline, who restarted / boot count, end-of-round report | catches the two green-but-wrong cases in the field notes (it caught a real third one on its first run) |
-| **M3** Restart — first cut done, first real run 18-10 | Reboot window: guards, re-check, never forced, confirmation, audit, check-only; expected service stops (0.7.0). Open: waves, protect list, CLI, SCM start-failure events for flagged services (FIELD-NOTES) | a test server restarted and verified end to end — met 18-10: five servers in two batches from the Reboot window |
+| **M3** Restart — first cut done, first real run 18-10 | Reboot window: guards, re-check, never forced, confirmation, audit, check-only; expected service stops (0.7.0); servers with users signed in skipped (0.8.0); why a service did not start (0.9.0). Open: waves, protect list, CLI | a test server restarted and verified end to end — met 18-10: five servers in two batches from the Reboot window |
 | **M4** Updates | Spike the routes above; WUA provider; scan → approve → install → restart (M3) → verify (M2) | a test wave patched end to end |
 | **M5** Release | Docs, release zip, versioning, (code signing) | public release |
 

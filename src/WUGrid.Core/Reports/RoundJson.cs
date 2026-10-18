@@ -69,6 +69,9 @@ namespace WUGrid.Core.Reports
                 .Num("servicesExpected", o.Baseline != null ? (long?)o.Baseline.RunningAutoServices.Count : null)
                 .Raw("servicesMarkedForDeletion", Json.Strings(o.Baseline?.MarkedForDeletion.Keys ?? Enumerable.Empty<string>()))
                 .Raw("servicesRemoved", Json.Strings(v?.RemovedServices.Select(s => s.Name) ?? Enumerable.Empty<string>()))
+                .Raw("serviceFailures", Json.Array(r.UnexpectedStops.Concat(r.ExpectedStops.Select(x => x.Issue)).Where(i => i.Failure != null)
+                    .Select(i => new JsonObject().Str("service", i.Service.Name).Num("event", i.Failure.Event.Code).Str("reason", i.Failure.ShortReason)
+                                                 .Num("earlierBoots", i.Failure.EarlierBoots).Num("earlierFailed", i.Failure.EarlierFailed).ToString())))
                 .ToString();
         }
 

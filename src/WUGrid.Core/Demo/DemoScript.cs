@@ -34,6 +34,7 @@ namespace WUGrid.Core.Demo
         bool hasUpdate = true;   // also: packages pending before the restart, so it shows RESTART PENDING
         (string Name, string Display, double Until)? serviceDown;
         (string Name, string Display)? serviceRemoved;
+        (string Name, string Display, double Until, int EarlierBoots)? serviceTimesOut;
 
         /// <param name="daysUp">Uptime before the round, for the last boot shown before the restart.</param>
         /// <param name="firstAnswer">Minute the first poll answers; "checking..." until then.</param>
@@ -86,6 +87,14 @@ namespace WUGrid.Core.Demo
             return this;
         }
 
+        /// <summary>A service too slow to start at boot (event 7009), as at every one of <paramref name="earlierBoots"/> boots
+        /// before; its owner starts it by hand at <paramref name="until"/>.</summary>
+        public DemoScript ServiceTimesOut(string name, string display, double until, int earlierBoots)
+        {
+            serviceTimesOut = (name, display, until, earlierBoots);
+            return this;
+        }
+
         DemoScript Add(Phase p)
         {
             var prev = phases[phases.Count - 1];
@@ -135,6 +144,7 @@ namespace WUGrid.Core.Demo
         {
             var services = new Dictionary<string, string> { ["W32Time"] = "Windows Time", ["Winmgmt"] = "Windows Management Instrumentation" };
             if (serviceDown.HasValue) services[serviceDown.Value.Name] = serviceDown.Value.Display;
+            if (serviceTimesOut.HasValue) services[serviceTimesOut.Value.Name] = serviceTimesOut.Value.Display;   // started by hand after the last boot
             var marked = new Dictionary<string, string>();
             if (serviceRemoved.HasValue) marked[serviceRemoved.Value.Name] = serviceRemoved.Value.Display;
             return new Baseline(since.AddMinutes(-1), "17763.8644", services, marked);
@@ -166,6 +176,13 @@ namespace WUGrid.Core.Demo
                 var change = new EventRecord(VerificationBuilder.ServiceControlManager, 7040, since.AddMinutes(downs.FirstOrDefault() - 1.5), 0,
                                              @"CONTOSO\appowner", s.Display, "auto start", "disabled", s.Name);
                 stopped.Add(new ServiceIssue(new ServiceRecord(s.Name, s.Display, "Stopped", "Disabled"), change));
+            }
+            if (checkedServices && serviceTimesOut.HasValue && minute < serviceTimesOut.Value.Until)
+            {
+                var s = serviceTimesOut.Value;
+                var timeout = new EventRecord(VerificationBuilder.ServiceControlManager, 7009, boot.AddMinutes(1.5), 0, "", "30000", s.Name);
+                stopped.Add(new ServiceIssue(new ServiceRecord(s.Name, s.Display, "Stopped", "Auto"), null,
+                                             new ServiceFailure(timeout, s.EarlierBoots, s.EarlierBoots, since.AddDays(-150))));
             }
             var removed = new List<ServiceRecord>();
             if (checkedServices && serviceRemoved.HasValue)

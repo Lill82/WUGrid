@@ -94,6 +94,20 @@ namespace WUGrid.Core.Tests
         }
 
         [Fact]
+        public void State_Rows_SayWhyAServiceDidNotStart()
+        {
+            var o = new Observation { Ping = true, Wmi = WmiResult.Ok, LastBoot = Since.AddMinutes(10) };
+            var timeout = new EventRecord(VerificationBuilder.ServiceControlManager, 7009, Since.AddMinutes(12), 1, "", "30000", "PrintSvc");
+            o.Verification = new ServerVerification(Since.AddMinutes(20), o.LastBoot.Value, "17763.8880", new UpdateResult[0], new RestartRecord[0],
+                new BootRecord[0], false, new[] { new ServiceIssue(new ServiceRecord("PrintSvc", "Print Management Server", "Stopped", "Auto"), null,
+                                                                   new ServiceFailure(timeout, 4, 4, Since.AddDays(-150))) }, true, false, true);
+            var snap = new RoundSnapshot(Since.AddMinutes(30), Since, new Dictionary<string, Observation> { ["SRV05"] = o });
+            var f = Objects(Objects(Parse(RoundJson.State(snap, false, null))["rows"]).Single()["serviceFailures"]).Single();
+            Assert.Equal(("PrintSvc", 7009, "timed out at start", 4, 4),
+                         ((string)f["service"], (int)f["event"], (string)f["reason"], (int)f["earlierBoots"], (int)f["earlierFailed"]));
+        }
+
+        [Fact]
         public void State_ExpectedStops_AreListedNotFlagged()
         {
             var state = Parse(RoundJson.State(Round(new[] { new ExpectedStop("SRV01", "AppDbSvc", "retired") }), false, null));

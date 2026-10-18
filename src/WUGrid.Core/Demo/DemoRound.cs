@@ -10,7 +10,8 @@ namespace WUGrid.Core.Demo
     /// A simulated restart round for trying the grid without touching any server. The scripts replay patterns from a
     /// real 54-server round (docs/FIELD-NOTES.md): servicing before shutdown, access denied / RPC unavailable while
     /// booting, chained TrustedInstaller reboots, component cleanup, a server down too long, one that needs a second
-    /// restart, owners who restart late, a cumulative update that fails, a service its owner left disabled. Server names
+    /// restart, owners who restart late, a cumulative update that fails, a service its owner left disabled, a service too
+    /// slow to start at every boot. Server names
     /// are made up. Runs on its own clock, faster than real time.
     /// </summary>
     public sealed class DemoRound : IRoundSource
@@ -104,7 +105,10 @@ namespace WUGrid.Core.Demo
             // green-looking at the old build, and only the update result says so (docs/FIELD-NOTES.md)
             new DemoScript("SQL01", 140, 0.35).Installing(25).Down(29).Booting(31, AccessDenied).Back(31.5, tiWorker: true).Back(35)
                 .FailsUpdate(unchecked((int)0x800F0840)),
-            new DemoScript("PRINT01", 180, 0.3).Installing(62).Down(64).Booting(65, RpcUnavailable).Back(65.5, tiWorker: true).Back(68),
+            // Its print management service is too slow to start at every boot (event 7009): flagged, with the reason, until
+            // its owner starts it by hand (FIELD-NOTES, 18-10 evening)
+            new DemoScript("PRINT01", 180, 0.3).Installing(62).Down(64).Booting(65, RpcUnavailable).Back(65.5, tiWorker: true).Back(68)
+                .ServiceTimesOut("PrintMgmtSvc", "Print Management Server", until: 73, earlierBoots: 4),
         };
     }
 }

@@ -23,6 +23,14 @@ namespace WUGrid.Core.Tests
             Assert.Equal("CBS_E_SESSION_CORRUPT", ErrorCatalog.Lookup(unchecked((int)0x800F0840))[0].Name);
 
         [Fact]
+        public void RestartRefusedForSignedInUsers_IsExplained()
+        {
+            var e = ErrorCatalog.Lookup(unchecked((int)0x800704A7))[0];
+            Assert.Equal("ERROR_SHUTDOWN_USERS_LOGGED_ON", e.Name);
+            Assert.Contains("logoff", e.Mitigation);
+        }
+
+        [Fact]
         public void WindowsUpdateCode_HasDescriptionAndMitigationFromMicrosoft()
         {
             var e = Assert.Single(ErrorCatalog.Lookup(unchecked((int)0x80240022)));

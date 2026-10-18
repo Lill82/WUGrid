@@ -258,7 +258,10 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
           and services (read-only) and flags:</p>
         <ul>
           <li>an <b>update that failed</b> (Windows Update event 20), with the error explained;</li>
-          <li>a <b>service not running</b> that ran before the restart, and who changed its start type — a stop you know about (a role being removed) can be marked <b>expected</b>: shown with the reason, not flagged;</li>
+          <li>a <b>service not running</b> that ran before the restart, who changed its start type, and <b>why it did
+            not start</b> — timed out at start, a service it depends on, its account — and whether it failed at the boots
+            before too; a stop you know about (a role being removed) can be marked <b>expected</b>: shown with the
+            reason, not flagged;</li>
           <li>who restarted it and why (event 1074), each boot and the build it came up on.</li>
         </ul>
         <p>Double-click a row for the details. The Build column shows the build before and after.</p>
@@ -280,7 +283,9 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
             before the restart is sent.</li>
           <li><b>Never forced</b> (<code>Win32ShutdownTracker</code>, reboot without force): running programs can delay
             or cancel it.</li>
-          <li>An optional warning for logged-on users, and <code>shutdown /a</code> on the server aborts it.</li>
+          <li>A server with a <b>user signed in</b> is skipped, naming who: Windows refuses a restart that is not
+            forced while anyone is signed in.</li>
+          <li>An optional warning period, during which <code>shutdown /a</code> on the server aborts it.</li>
           <li><b>Check only</b> runs everything but the restart call.</li>
           <li>Each request and result goes to an append-only <b>audit log</b>, and your comment shows up in
             event 1074 on the server.</li>

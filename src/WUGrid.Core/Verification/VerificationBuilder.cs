@@ -7,8 +7,8 @@ using System.Text.RegularExpressions;
 namespace WUGrid.Core.Verification
 {
     /// <summary>
-    /// Turns what was read from a server (System log records since the cut-off, services, build) into a
-    /// <see cref="ServerVerification"/>. Pure, so every event layout it relies on is pinned by a test. Decides on event
+    /// Turns what was read from a server (System log records since the cut-off, services, build, and on request the boots
+    /// and service failures before it) into a <see cref="ServerVerification"/>. Pure, so every event layout it relies on is pinned by a test. Decides on event
     /// IDs, sources and data fields, never on message text (servers can be in any language).
     /// </summary>
     public static class VerificationBuilder
@@ -19,8 +19,19 @@ namespace WUGrid.Core.Verification
         public const string EventLog = "EventLog";
         public const string ServiceControlManager = "Service Control Manager";
 
+        /// <summary>Service Control Manager events that say why a service is not running: 7000 failed to start, 7001 a service
+        /// it depends on failed, 7009 / 7011 timed out, 7022 hung starting, 7023 / 7024 stopped with an error, 7031 / 7034
+        /// terminated unexpectedly, 7038 could not log on.</summary>
+        public static readonly int[] ServiceFailureCodes = { 7000, 7001, 7009, 7011, 7022, 7023, 7024, 7031, 7034, 7038 };
+
         /// <summary>The System log events a verification reads. Event 20 is shared by several sources: filter by source too.</summary>
-        public static readonly int[] EventCodes = { 19, 20, 1074, 12, 6008, 7040 };
+        public static readonly int[] EventCodes = new[] { 19, 20, 1074, 12, 6008, 7040 }.Concat(ServiceFailureCodes).ToArray();
+
+        /// <summary>What the read of earlier boots looks for: the boots, and the services' failures after them.</summary>
+        public static readonly int[] EarlierBootCodes = new[] { 12 }.Concat(ServiceFailureCodes).ToArray();
+
+        /// <summary>A service failure this soon after an earlier boot counts as failing at that boot.</summary>
+        public static readonly TimeSpan StartWindow = TimeSpan.FromMinutes(30);
 
         /// <summary>Delayed-start services start about two minutes after boot; wait longer than that before judging.</summary>
         public static readonly TimeSpan ServicesAfter = TimeSpan.FromMinutes(5);
@@ -62,14 +73,16 @@ namespace WUGrid.Core.Verification
         /// <param name="events">System log records since the cut-off (any order; others are ignored).</param>
         /// <param name="services">Current services, or null when not read this time.</param>
         /// <param name="tiWorker">Servicing still running: not settled yet.</param>
+        /// <param name="earlier">Boots and service failures from before the cut-off, read on request; null when not read.</param>
         public static ServerVerification Build(DateTime now, DateTime boot, string build, IEnumerable<EventRecord> events,
-                                               IReadOnlyList<ServiceRecord> services, Baseline baseline, bool tiWorker)
+                                               IReadOnlyList<ServiceRecord> services, Baseline baseline, bool tiWorker,
+                                               IEnumerable<EventRecord> earlier = null)
         {
             var list = events.OrderBy(e => e.Time).ThenBy(e => e.RecordNumber).ToList();
             var up = now - boot;
 
             var servicesChecked = services != null && up >= ServicesAfter;
-            var stopped = servicesChecked ? StoppedServices(services, baseline, list) : new List<ServiceIssue>();
+            var stopped = servicesChecked ? StoppedServices(services, baseline, list, boot, earlier) : new List<ServiceIssue>();
             var removed = servicesChecked && baseline != null ? RemovedServices(services, baseline) : new List<ServiceRecord>();
 
             return new ServerVerification(
@@ -121,7 +134,8 @@ namespace WUGrid.Core.Verification
             return new BootRecord(time, build);
         }
 
-        static List<ServiceIssue> StoppedServices(IReadOnlyList<ServiceRecord> services, Baseline baseline, List<EventRecord> events)
+        static List<ServiceIssue> StoppedServices(IReadOnlyList<ServiceRecord> services, Baseline baseline, List<EventRecord> events,
+                                                  DateTime boot, IEnumerable<EventRecord> earlier)
         {
             var now = services.ToDictionary(s => s.Name, StringComparer.OrdinalIgnoreCase);
             IEnumerable<ServiceRecord> expected = baseline != null
@@ -131,10 +145,47 @@ namespace WUGrid.Core.Verification
                 : services.Where(s => s.StartMode == "Auto");
             // 7040: [0] display name, [1] old start type, [2] new start type (both localized), [3] service name
             var changes = events.Where(e => e.Code == 7040 && e.Source == ServiceControlManager).ToList();
+
+            var all = (earlier ?? Enumerable.Empty<EventRecord>()).Concat(events).ToList();
+            var failures = all.Where(e => e.Source == ServiceControlManager && ServiceFailureCodes.Contains(e.Code))
+                              .OrderBy(e => e.Time).ThenBy(e => e.RecordNumber).ToList();
+            var earlierBoots = all.Where(e => e.Code == 12 && e.Source == KernelGeneral).Select(e => BootOf(e).Time)
+                                  .Where(t => t < boot - TimeSpan.FromMinutes(1)).Distinct().OrderBy(t => t).ToList();
+
             return expected.Where(s => s.State != "Running" && !IsTransientService(s.Name))
-                           .Select(s => new ServiceIssue(s, changes.LastOrDefault(e => string.Equals(e.At(3), s.Name, StringComparison.OrdinalIgnoreCase))))
+                           .Select(s => new ServiceIssue(s, changes.LastOrDefault(e => string.Equals(e.At(3), s.Name, StringComparison.OrdinalIgnoreCase)),
+                                                         FailureOf(s, boot, failures, earlierBoots)))
                            .OrderBy(i => i.Service.Name, StringComparer.OrdinalIgnoreCase)
                            .ToList();
+        }
+
+        /// <summary>Why the service is not running at this boot, and whether it failed after the boots before; null when the
+        /// Service Control Manager logged no failure for it since the boot (stopped by someone, disabled…).</summary>
+        static ServiceFailure FailureOf(ServiceRecord s, DateTime boot, List<EventRecord> failures, List<DateTime> earlierBoots)
+        {
+            var mine = failures.Where(e => Names(s, ServiceFailure.ServiceIn(e))).ToList();
+            var now = mine.Where(e => e.Time >= boot).ToList();
+            if (now.Count == 0) return null;
+            var failed = 0;
+            for (var i = 0; i < earlierBoots.Count; i++)
+            {
+                var from = earlierBoots[i];
+                var next = i + 1 < earlierBoots.Count ? earlierBoots[i + 1] : boot;
+                var to = from + StartWindow < next ? from + StartWindow : next;
+                if (mine.Any(e => e.Time >= from && e.Time < to)) failed++;
+            }
+            return new ServiceFailure(Primary(now), earlierBoots.Count, failed, earlierBoots.Count > 0 ? earlierBoots[0] : (DateTime?)null);
+        }
+
+        static bool Names(ServiceRecord s, string name) =>
+            string.Equals(name, s.Name, StringComparison.OrdinalIgnoreCase) || string.Equals(name, s.DisplayName, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>The latest failure, except that a 7000 "no answer in time" gives way to the 7009 logged with it, which says
+        /// how long the service had.</summary>
+        static EventRecord Primary(List<EventRecord> failures)
+        {
+            var last = failures[failures.Count - 1];
+            return last.Code != 7000 ? last : failures.LastOrDefault(e => e.Code != 7000 && last.Time - e.Time <= TimeSpan.FromSeconds(10)) ?? last;
         }
 
         /// <summary>Services the baseline found marked for deletion and that are not running now: gone, or still registered

@@ -10,7 +10,8 @@ namespace WUGrid.Gui
 {
     /// <summary>
     /// Everything known about one server in this round: state, build before and after, update results with their error
-    /// codes explained, who restarted it and why, boots, services not running. Follows the grid while open.
+    /// codes explained, who restarted it and why, boots, services not running and why they did not start. Follows the
+    /// grid while open.
     /// </summary>
     sealed class ServerDetailsForm : Form
     {
@@ -19,6 +20,8 @@ namespace WUGrid.Gui
         readonly RichTextBox text = new RichTextBox();
         readonly Timer timer = new Timer { Interval = 2000 };
         readonly Button lookup = new Button { Text = "Error codes…", AutoSize = true };
+        readonly Button earlierBoots = new Button { Text = "Earlier boots", AutoSize = true, Visible = false };
+        readonly bool canReadEarlier;
         readonly Font body = new Font("Segoe UI", 9.75f);
         readonly Font heading = new Font("Segoe UI Semibold", 10.5f);
         readonly Font title = new Font("Segoe UI Semibold", 13f);
@@ -27,7 +30,9 @@ namespace WUGrid.Gui
 
         /// <param name="recheck">Asks for a fresh verification (live rounds); null hides the button.</param>
         /// <param name="markExpected">Opens the expected-stops window for this server; null hides the button.</param>
-        public ServerDetailsForm(string server, Func<string, ServerRow> current, Action<string> recheck, Action<string> markExpected = null)
+        /// <param name="readEarlierBoots">Reads the server's earlier boots in the background (live rounds); null hides the button.</param>
+        public ServerDetailsForm(string server, Func<string, ServerRow> current, Action<string> recheck, Action<string> markExpected = null,
+                                 Action<string> readEarlierBoots = null)
         {
             this.server = server;
             this.current = current;
@@ -67,6 +72,13 @@ namespace WUGrid.Gui
                 expected.Click += (s, e) => markExpected(server);
                 bar.Controls.Add(expected);
             }
+            canReadEarlier = readEarlierBoots != null;
+            earlierBoots.Click += (s, e) =>
+            {
+                earlierBoots.Enabled = false;   // until the poll shows it reading
+                readEarlierBoots?.Invoke(server);
+            };
+            bar.Controls.Add(earlierBoots);
             CancelButton = close;
             Load += (s, e) => ActiveControl = close;   // not the text box: no caret blinking in the report (only once visible)
             Controls.Add(host);
@@ -80,6 +92,10 @@ namespace WUGrid.Gui
         void Render()
         {
             var row = current(server);
+            // Offered for a service that failed to start, when no read is running or done for this cut-off
+            var read = row?.Observation.EarlierBoots;
+            earlierBoots.Visible = canReadEarlier && HasFailures(row);
+            earlierBoots.Enabled = read == null || read.Error != null;
             var doc = new Doc(heading);
             firstCode = 0;
             if (row == null) doc.Line("This server is no longer in the list.", body);
@@ -156,13 +172,22 @@ namespace WUGrid.Gui
                     else
                     {
                         d.Line(v.ComparedToBaseline ? $"Ran before the restart, not running now ({flagged.Count} of {known}):" : "Automatic, not running (no baseline from before the restart):", body, Palette.MutedText);
-                        foreach (var i in flagged) d.Line("• " + RoundReport.ServiceLine(i), body, Palette.AlarmText);
+                        foreach (var i in flagged)
+                        {
+                            d.Line("• " + RoundReport.ServiceLine(i), body, Palette.AlarmText);
+                            Advise(d, i);
+                        }
                     }
                     if (expected.Count > 0)
                     {
                         d.Line($"Not running, expected ({expected.Count}): shown, not flagged.", body, Palette.MutedText);
-                        foreach (var x in expected) d.Line("• " + RoundReport.ExpectedLine(x), body, Palette.MutedText);
+                        foreach (var x in expected)
+                        {
+                            d.Line("• " + RoundReport.ExpectedLine(x), body, Palette.MutedText);
+                            Advise(d, x.Issue);
+                        }
                     }
+                    if (HasFailures(r)) EarlierBootsStatus(d, o.EarlierBoots);
                 }
                 if (v.RemovedServices.Count > 0)
                 {
@@ -184,6 +209,33 @@ namespace WUGrid.Gui
                            string.Join(", ", o.Baseline.MarkedForDeletion.Select(kv => $"{kv.Value} ({kv.Key})")), body, Palette.MutedText);
             }
             if (o.VerificationError != null) d.Line("Last check failed: " + o.VerificationError, body, Palette.AlarmText);
+        }
+
+        void Advise(Doc d, Core.Verification.ServiceIssue i)
+        {
+            if (i.Failure != null && i.Failure.Advice != "") d.Line(i.Failure.Advice, body, Palette.MutedText, (int)(20 * DeviceDpi / 96f));
+        }
+
+        void EarlierBootsStatus(Doc d, EarlierBootsRead read)
+        {
+            if (read == null)
+            {
+                if (canReadEarlier)
+                    d.Line($"Earlier boots reads the System log back {(int)EarlierBootsRead.Lookback.TotalDays} days for whether these services " +
+                           "failed at those boots too: minutes on a large log, in the background.", body, Palette.MutedText);
+            }
+            else if (read.Reading)
+                d.Line($"Reading earlier boots: the System log back to {read.From:dd-MM-yyyy}, minutes on a large log…", body, Palette.MutedText);
+            else if (read.Error != null)
+                d.Line($"Reading earlier boots failed at {read.Finished:HH:mm}: {read.Error}", body, Palette.AlarmText);
+            else
+                d.Line($"Earlier boots read at {read.Finished:HH:mm}: the System log back to {read.From:dd-MM-yyyy}.", body, Palette.MutedText);
+        }
+
+        static bool HasFailures(ServerRow r)
+        {
+            var v = r?.CurrentVerification;
+            return v != null && v.StoppedServices.Any(i => i.Failure != null);
         }
 
         void Explain(Doc d, int code)

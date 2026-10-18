@@ -43,6 +43,8 @@ namespace WUGrid.Core.Tests
             Assert.Contains(lines, l => l.StartsWith("SQL01") && l.Contains("update failed: KB5900001 (0x800F0840 CBS_E_SESSION_CORRUPT)"));
             Assert.Contains(lines, l => l.StartsWith("APP02") && l.EndsWith("(service not running: Application Database Service)"));
             Assert.Contains(lines, l => l.StartsWith("APP02 BACK (service not running"));   // re-enabled by its owner
+            Assert.Contains(lines, l => l.StartsWith("PRINT01") &&
+                                        l.Contains("service not running: Print Management Server (timed out at start; also at all 4 boots before)"));
             Assert.DoesNotContain(events, e => e.Kind == RoundEventKind.AllClean);
         }
     }
