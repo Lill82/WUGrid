@@ -23,6 +23,7 @@ namespace WUGrid.Gui
         readonly DemoRound demo;
         readonly LiveRound live;
         readonly string listPath;
+        readonly string expectedPath;
         readonly Dictionary<string, AccessCheckResult> checks = new Dictionary<string, AccessCheckResult>(StringComparer.OrdinalIgnoreCase);
         readonly float scale;
         readonly Timer timer = new Timer();
@@ -47,6 +48,7 @@ namespace WUGrid.Gui
             this.listPath = listPath;
             demo = source as DemoRound;
             live = source as LiveRound;
+            expectedPath = live != null ? ExpectedList.DefaultPath : null;   // the demo's expected stops are not kept
             scale = DeviceDpi / 96f;
             timer.Interval = demo != null ? 500 : 1000;
 
@@ -156,11 +158,13 @@ namespace WUGrid.Gui
                 });
                 poll.ToolTipText = pollTip;
             }
+            var expected = new ToolStripButton("Expected…") { ToolTipText = "Services you expect not to run after the restart (a role being removed): shown with the reason, not flagged. Nothing is sent." };
+            expected.Click += (s, e) => EditExpected();
             var errors = new ToolStripButton("Error codes…") { ToolTipText = "Explain a CBS, Windows Update, WMI or Win32 error code" };
             errors.Click += (s, e) => ShowErrorCodes(null);
             var report = new ToolStripButton("Report…") { ToolTipText = "Save the round as an HTML page (opened after saving) or a CSV file" };
             report.Click += (s, e) => SaveReport();
-            bar.Items.AddRange(new ToolStripItem[] { new ToolStripSeparator(), report, errors });
+            bar.Items.AddRange(new ToolStripItem[] { new ToolStripSeparator(), expected, report, errors });
             var note = demo != null ? "Round time runs faster than real time" : "Read-only, except restarts you send with Reboot…";
             bar.Items.Add(new ToolStripLabel(note) { ForeColor = Palette.MutedText, Alignment = ToolStripItemAlignment.Right });
             return bar;
@@ -184,6 +188,31 @@ namespace WUGrid.Gui
         void Reboot()
         {
             using (var dialog = new RestartForm(() => lastSnapshot, Restarted)) dialog.ShowDialog(this);
+        }
+
+        /// <summary>Mark service stops as expected; <paramref name="server"/> pre-ticks that server's. Changes go to the event
+        /// pane and to the list file, and apply on the next refresh.</summary>
+        void EditExpected(string server = null)
+        {
+            var snap = lastSnapshot ?? source.Snapshot();
+            using (var dialog = new ExpectedForm(snap, source.Expected, server))
+            {
+                if (dialog.ShowDialog(this) != DialogResult.OK) return;
+                var before = source.Expected;
+                var after = dialog.Entries;
+                source.Expected = after;
+                foreach (var e in after.Where(e => !before.Any(b => ExpectedList.Same(b, e))))
+                    AddEvent(new RoundEvent(DateTime.Now, RoundEventKind.Expected, e.Server,
+                                            $"EXPECTED stop{(e.Server == null ? " on every server" : "")}: {e.Service}" + (e.Comment != "" ? $" ({e.Comment})" : "")));
+                foreach (var e in before.Where(b => !after.Any(a => ExpectedList.Same(b, a))))
+                    AddEvent(new RoundEvent(DateTime.Now, RoundEventKind.Expected, e.Server, $"no longer expected{(e.Server == null ? " on every server" : "")}: {e.Service}"));
+                if (expectedPath != null)
+                {
+                    try { ExpectedList.Save(expectedPath, after); }
+                    catch (Exception ex) { MessageBox.Show(this, $"Could not save the expected stops to {expectedPath}:\n{ex.Message}", "WUGrid", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
+                }
+                ShowRound(source.Snapshot());
+            }
         }
 
         // Every restart result goes to the event pane; results can arrive after the Reboot window has closed
@@ -210,7 +239,7 @@ namespace WUGrid.Gui
 
         void ShowDetails(string name) =>
             new ServerDetailsForm(name, n => lastSnapshot?.Rows.FirstOrDefault(r => string.Equals(r.Name, n, StringComparison.OrdinalIgnoreCase)),
-                                  live == null ? (Action<string>)null : live.RequestVerify).Show(this);
+                                  live == null ? (Action<string>)null : live.RequestVerify, n => EditExpected(n)).Show(this);
 
         void SaveReport()
         {
@@ -425,7 +454,8 @@ namespace WUGrid.Gui
             var item = new ListViewItem(new[] { e.Time.ToString("HH:mm:ss"), e.Server ?? "", e.Text });
             if (e.Kind != RoundEventKind.Transition)
             {
-                item.ForeColor = e.Kind == RoundEventKind.Alarm ? Palette.AlarmText : e.Kind == RoundEventKind.Action ? Palette.ActionText : Palette.CleanText;
+                item.ForeColor = e.Kind == RoundEventKind.Alarm ? Palette.AlarmText
+                               : e.Kind == RoundEventKind.Action || e.Kind == RoundEventKind.Expected ? Palette.ActionText : Palette.CleanText;
                 item.Font = boldEvent ?? (boldEvent = new Font(events.Font, FontStyle.Bold));
             }
             events.Items.Insert(0, item);   // newest on top

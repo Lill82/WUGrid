@@ -32,6 +32,8 @@ namespace WUGrid.Core.Reports
                 .Num("servers", rows.Count)
                 .Bool("allClean", allClean)
                 .Raw("counts", counts.ToString())
+                .Raw("expectedStops", Json.Array(snapshot.Expected.Select(e =>
+                    new JsonObject().Str("server", e.Server).Str("service", e.Service).Str("comment", e.Comment).ToString())))
                 .Raw("rows", Json.Array(rows.Select(Row)))
                 .ToString();
         }
@@ -62,7 +64,8 @@ namespace WUGrid.Core.Reports
                 .Str("build", o.Build)
                 .Raw("updatesFailed", Json.Array((v?.Failed ?? Enumerable.Empty<Verification.UpdateResult>())
                     .Select(u => new JsonObject().Str("update", u.Label).Str("code", ErrorCatalog.Hex(u.ErrorCode)).ToString())))
-                .Raw("servicesNotRunning", Json.Strings(v?.StoppedServices.Select(i => i.Service.Name) ?? Enumerable.Empty<string>()))
+                .Raw("servicesNotRunning", Json.Strings(r.UnexpectedStops.Select(i => i.Service.Name)))
+                .Raw("servicesExpectedStopped", Json.Strings(r.ExpectedStops.Select(x => x.Issue.Service.Name)))
                 .Num("servicesExpected", o.Baseline != null ? (long?)o.Baseline.RunningAutoServices.Count : null)
                 .Raw("servicesMarkedForDeletion", Json.Strings(o.Baseline?.MarkedForDeletion.Keys ?? Enumerable.Empty<string>()))
                 .Raw("servicesRemoved", Json.Strings(v?.RemovedServices.Select(s => s.Name) ?? Enumerable.Empty<string>()))

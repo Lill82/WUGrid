@@ -23,7 +23,9 @@ namespace WUGrid.Core
         public static bool IsTransientWhileRestarting(int hresult) => hresult == AccessDenied || hresult == RpcServerUnavailable;
 
         /// <param name="since">Round cut-off: a server counts as restarted when it booted after this.</param>
-        public static ServerStatus Classify(Observation o, DateTime since, DateTime now)
+        /// <param name="expectedStops">Names of services the operator expects not to run on this server (<see cref="ExpectedList"/>):
+        /// a stop among them is noted, not flagged.</param>
+        public static ServerStatus Classify(Observation o, DateTime since, DateTime now, IReadOnlyCollection<string> expectedStops = null)
         {
             if (o.Ping == null || (o.Ping == true && o.Wmi == WmiResult.NotYet))
                 return new ServerStatus(ServerState.Checking);
@@ -50,6 +52,7 @@ namespace WUGrid.Core
 
             var flags = BackFlag.None;
             var notes = new List<string>();
+            string expectedNote = null;
             if (pending.Count > 0)
             {
                 flags |= BackFlag.RebootPending;
@@ -70,21 +73,34 @@ namespace WUGrid.Core
                 }
                 if (v.StoppedServices.Count > 0)
                 {
-                    flags |= BackFlag.ServiceStopped;
-                    var names = v.StoppedServices.Select(i => i.Service.DisplayName).ToList();
-                    notes.Add(names.Count == 1 ? $"service not running: {names[0]}" : $"{names.Count} services not running");
+                    // A stop the operator marked as expected (a role being removed) is noted, not flagged
+                    var stopped = v.StoppedServices.Select(i => i.Service).ToList();
+                    var unexpected = stopped.Where(s => !IsExpected(s.Name, expectedStops)).ToList();
+                    var expected = stopped.Where(s => IsExpected(s.Name, expectedStops)).ToList();
+                    if (unexpected.Count > 0)
+                    {
+                        flags |= BackFlag.ServiceStopped;
+                        notes.Add(unexpected.Count == 1 ? $"service not running: {unexpected[0].DisplayName}" : $"{unexpected.Count} services not running");
+                    }
+                    if (expected.Count > 0)
+                        expectedNote = expected.Count == 1 ? $"expected stop: {expected[0].DisplayName}" : $"{expected.Count} expected stops";
                 }
             }
 
             if (flags != BackFlag.None)
-                return new ServerStatus(ServerState.Back, flags, elapsed: up, note: string.Join("; ", notes));
+                return new ServerStatus(ServerState.Back, flags, elapsed: up, note: Join(string.Join("; ", notes), expectedNote));
 
             if (o.CbsRebootPending)
-                return new ServerStatus(ServerState.Back, activity: BackActivity.ComponentCleanup, elapsed: up, note: "component cleanup running");
+                return new ServerStatus(ServerState.Back, activity: BackActivity.ComponentCleanup, elapsed: up, note: Join("component cleanup running", expectedNote));
             if (o.TiWorker)
-                return new ServerStatus(ServerState.Back, activity: BackActivity.ServicingFinishing, elapsed: up, note: "servicing finishing");
-            return new ServerStatus(ServerState.Back, elapsed: up);
+                return new ServerStatus(ServerState.Back, activity: BackActivity.ServicingFinishing, elapsed: up, note: Join("servicing finishing", expectedNote));
+            return new ServerStatus(ServerState.Back, elapsed: up, note: expectedNote ?? "");
         }
+
+        static bool IsExpected(string service, IReadOnlyCollection<string> expected) =>
+            expected != null && expected.Contains(service, StringComparer.OrdinalIgnoreCase);
+
+        static string Join(string note, string extra) => extra == null ? note : note == "" ? extra : note + "; " + extra;
 
         /// <summary>
         /// What says a restart is pending: CBS packages waiting (with the RebootPending mark) and Windows Update's

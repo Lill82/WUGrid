@@ -28,6 +28,10 @@ namespace WUGrid.Cli
             "                       (no servers and no --list: the GUI's list, %APPDATA%\\WUGrid\\servers.txt)\n" +
             "  --since DATETIME     round cut-off: a server counts as restarted when it booted after it\n" +
             "                       (default: today 00:00)\n" +
+            "  --expected FILE      services the operator expects not to run after the restart, one per line:\n" +
+            "                       SERVICE or SERVER\\SERVICE (*\\SERVICE = every server), // why. Shown, not\n" +
+            "                       flagged; re-read whenever it changes (default: the GUI's list,\n" +
+            "                       %APPDATA%\\WUGrid\\expected.txt, when it exists)\n" +
             "  --interval SECONDS   time between polls of each server (default 5)\n" +
             "  --headless           no grid: one line per first state, change and alarm; stops once every\n" +
             "                       server is back clean with its checks done (also when output is redirected)\n" +
@@ -42,7 +46,7 @@ namespace WUGrid.Cli
         {
             var since = DateTime.Today;
             var interval = TimeSpan.FromSeconds(5);
-            string listPath = null, statePath = null, eventsPath = null;
+            string listPath = null, statePath = null, eventsPath = null, expectedPath = null;
             bool headless = false, keepRunning = false, demo = false;
             var names = new List<string>();
             for (var i = 0; i < args.Count; i++)
@@ -62,6 +66,7 @@ namespace WUGrid.Cli
                 else if (a == "--list" && hasValue) listPath = args[++i];
                 else if (a == "--state" && hasValue) statePath = args[++i];
                 else if (a == "--events" && hasValue) eventsPath = args[++i];
+                else if (a == "--expected" && hasValue) expectedPath = args[++i];
                 else if (a == "--headless") headless = true;
                 else if (a == "--keep-running") keepRunning = true;
                 else if (a == "--demo") demo = true;
@@ -75,6 +80,7 @@ namespace WUGrid.Cli
             try
             {
                 if (listPath != null) listPath = Path.GetFullPath(listPath);
+                if (expectedPath != null) expectedPath = Path.GetFullPath(expectedPath);
                 foreach (var p in new[] { statePath, eventsPath }.Where(p => p != null))
                     Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(p)));
             }
@@ -84,6 +90,8 @@ namespace WUGrid.Cli
             }
             if (listPath != null && !File.Exists(listPath))
                 return Fail(defaultList ? $"no servers given, and the GUI has no saved list ({listPath})" : $"--list: no such file: {listPath}");
+            if (expectedPath != null && !File.Exists(expectedPath)) return Fail($"--expected: no such file: {expectedPath}");
+            if (expectedPath == null && File.Exists(ExpectedList.DefaultPath)) expectedPath = ExpectedList.DefaultPath;
 
             var servers = names.Concat(listPath != null ? ServerList.Load(listPath) : new string[0]).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
             if (!demo && servers.Count == 0) return Fail($"no servers: {listPath} lists none");
@@ -105,12 +113,14 @@ namespace WUGrid.Cli
             var recent = new List<RoundEvent>();
             var grid = new ConsoleGrid();
             var listStamp = listPath != null ? Stamp(listPath) : DateTime.MinValue;
+            var expectedStamp = DateTime.MinValue;
+            if (expectedPath != null) ReloadExpected(source, expectedPath, ref expectedStamp);
             string warning = null;
             int drawn = 0, lastWidth = 0, lastHeight = 0;
             var tick = TimeSpan.FromMilliseconds(demo ? 500 : 1000);
 
             string oldTitle = null;
-            if (headless) Console.WriteLine(Intro(servers.Count, listPath, since, interval, demo));
+            if (headless) Console.WriteLine(Intro(servers.Count, listPath, since, interval, demo, expectedPath));
             else Try(() =>
             {
                 oldTitle = Console.Title;
@@ -123,8 +133,10 @@ namespace WUGrid.Cli
                 while (true)
                 {
                     if (live != null && listPath != null) listStamp = Reload(live, names, listPath, listStamp);
+                    var reread = expectedPath != null && ReloadExpected(source, expectedPath, ref expectedStamp);
                     var snap = source.Snapshot();
-                    var events = tracker.Update(snap);
+                    var events = tracker.Update(snap).ToList();
+                    if (reread) events.Insert(0, new RoundEvent(snap.Now, RoundEventKind.Expected, null, $"expected stops re-read: {source.Expected.Count} ({expectedPath})"));
                     var problem = Save(statePath, eventsPath, snap, events, tracker.AllClean, live?.Interval);
 
                     if (headless)
@@ -169,11 +181,12 @@ namespace WUGrid.Cli
             return tracker.AllClean ? 0 : 1;
         }
 
-        static string Intro(int count, string listPath, DateTime since, TimeSpan interval, bool demo) =>
-            demo
+        static string Intro(int count, string listPath, DateTime since, TimeSpan interval, bool demo, string expectedPath) =>
+            (demo
                 ? $"Demo round: simulated, no servers are contacted ({DemoRound.Length.TotalMinutes:0} min of round time). Ctrl+C stops."
                 : $"Watching {Servers(count)}" + (listPath != null ? $" ({listPath}, re-read when it changes)" : "") +
-                  $", cut-off {since:yyyy-MM-dd HH:mm}, polled every {interval.TotalSeconds:0} s. Read-only. Ctrl+C stops.";
+                  $", cut-off {since:yyyy-MM-dd HH:mm}, polled every {interval.TotalSeconds:0} s. Read-only. Ctrl+C stops.") +
+            (expectedPath != null ? $" Expected stops from {expectedPath}, re-read when it changes." : "");
 
         static string Servers(int n) => n == 1 ? "1 server" : $"{n} servers";
 
@@ -194,6 +207,23 @@ namespace WUGrid.Cli
         }
 
         static DateTime Stamp(string path) => File.Exists(path) ? File.GetLastWriteTimeUtc(path) : DateTime.MinValue;
+
+        /// <summary>Re-reads the expected-stops file when it has changed (also the first time); true when it was read.</summary>
+        static bool ReloadExpected(IRoundSource source, string path, ref DateTime known)
+        {
+            var stamp = Stamp(path);
+            if (stamp == known) return false;
+            try
+            {
+                source.Expected = ExpectedList.Load(path);
+                known = stamp;
+                return true;
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                return false;
+            }
+        }
 
         /// <returns>Why a file could not be written, or null.</returns>
         static string Save(string statePath, string eventsPath, RoundSnapshot snap, IReadOnlyList<RoundEvent> events, bool allClean, TimeSpan? interval)
@@ -276,7 +306,7 @@ namespace WUGrid.Cli
         static int Fail(string message)
         {
             Console.Error.WriteLine(message);
-            Console.Error.WriteLine("usage: wugrid-cli watch [SERVER ...] [--list FILE] [--since DATETIME] [--interval SECONDS]");
+            Console.Error.WriteLine("usage: wugrid-cli watch [SERVER ...] [--list FILE] [--since DATETIME] [--expected FILE] [--interval SECONDS]");
             Console.Error.WriteLine("                        [--headless [--keep-running]] [--state FILE] [--events FILE] [--demo]");
             Console.Error.WriteLine("       wugrid-cli watch --help");
             return 2;

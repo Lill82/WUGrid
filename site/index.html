@@ -258,7 +258,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
           and services (read-only) and flags:</p>
         <ul>
           <li>an <b>update that failed</b> (Windows Update event 20), with the error explained;</li>
-          <li>a <b>service not running</b> that ran before the restart, and who changed its start type;</li>
+          <li>a <b>service not running</b> that ran before the restart, and who changed its start type — a stop you know about (a role being removed) can be marked <b>expected</b>: shown with the reason, not flagged;</li>
           <li>who restarted it and why (event 1074), each boot and the build it came up on.</li>
         </ul>
         <p>Double-click a row for the details. The Build column shows the build before and after.</p>
@@ -416,7 +416,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
         <li><span class="m">M0</span><span class="s done">done</span><span class="d"><b>Foundation:</b> solution, tests, CI, anonymised field notes</span></li>
         <li><span class="m">M1</span><span class="s built">built</span><span class="d"><b>Watch:</b> live grid, console grid, headless events, state JSON</span></li>
         <li><span class="m">M2</span><span class="s done">done</span><span class="d"><b>Verify:</b> update results, services baseline, who restarted, report</span></li>
-        <li><span class="m">M3</span><span class="s cut">first cut</span><span class="d"><b>Restart:</b> guards, re-check, never forced, audit; waves and a protect list next</span></li>
+        <li><span class="m">M3</span><span class="s cut">first cut</span><span class="d"><b>Restart:</b> guards, re-check, never forced, audit, expected stops; waves and a protect list next</span></li>
         <li><span class="m">M4</span><span class="s next">next</span><span class="d"><b>Updates:</b> scan → approve → install → restart → verify, agentless</span></li>
         <li><span class="m">M5</span><span class="s plan">planned</span><span class="d"><b>Release:</b> docs, release zip, versioning</span></li>
       </ol>

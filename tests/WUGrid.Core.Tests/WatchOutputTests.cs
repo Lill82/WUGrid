@@ -17,7 +17,7 @@ namespace WUGrid.Core.Tests
             new Dictionary<string, string> { ["AppDbSvc"] = "App \"Db\"", ["W32Time"] = "Windows Time" },
             new Dictionary<string, string> { ["OldAgent"] = "Old Agent" });
 
-        static RoundSnapshot Round()
+        static RoundSnapshot Round(IReadOnlyList<ExpectedStop> expected = null)
         {
             var failed = new Observation { Ping = true, Wmi = WmiResult.Ok, LastBoot = Since.AddMinutes(10), Build = "17763.8880", Baseline = Before };
             failed.Verification = new ServerVerification(
@@ -34,7 +34,7 @@ namespace WUGrid.Core.Tests
                 ["SRV01"] = failed,
                 ["SRV02"] = booting,
                 ["SRV04"] = new Observation(),
-            });
+            }, expected);
         }
 
         static Dictionary<string, object> Parse(string json)
@@ -77,6 +77,7 @@ namespace WUGrid.Core.Tests
             Assert.Equal(2, failed["servicesExpected"]);   // before: 2 expected back + 1 marked for deletion; after: 1 not running + 1 removed
             Assert.Equal(new object[] { "OldAgent" }, (object[])failed["servicesMarkedForDeletion"]);
             Assert.Equal(new object[] { "OldAgent" }, (object[])failed["servicesRemoved"]);
+            Assert.Empty((object[])failed["servicesExpectedStopped"]);
             Assert.Null(rows["SRV03"]["servicesExpected"]);   // no baseline yet
 
             Assert.Equal("Booting", rows["SRV02"]["state"]);
@@ -90,6 +91,18 @@ namespace WUGrid.Core.Tests
             Assert.Equal("Checking", rows["SRV04"]["state"]);
             Assert.Null(rows["SRV04"]["ping"]);
             Assert.Null(rows["SRV04"]["lastBoot"]);
+        }
+
+        [Fact]
+        public void State_ExpectedStops_AreListedNotFlagged()
+        {
+            var state = Parse(RoundJson.State(Round(new[] { new ExpectedStop("SRV01", "AppDbSvc", "retired") }), false, null));
+            var entry = Objects(state["expectedStops"]).Single();
+            Assert.Equal(("SRV01", "AppDbSvc", "retired"), ((string)entry["server"], (string)entry["service"], (string)entry["comment"]));
+            var failed = Objects(state["rows"]).Single(r => (string)r["server"] == "SRV01");
+            Assert.Equal(new object[] { "UpdateFailed" }, (object[])failed["flags"]);
+            Assert.Empty((object[])failed["servicesNotRunning"]);
+            Assert.Equal(new object[] { "AppDbSvc" }, (object[])failed["servicesExpectedStopped"]);
         }
 
         [Fact]

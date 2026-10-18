@@ -95,7 +95,7 @@ SRV-M, from the headless watch (polled every 5 s):
   7024, service-specific error) and everything that depends on it timed out at start (events 7000/7009: WSUS, two
   print-management services). The operator knew why — the WSUS removal — so the flags were right but expected:
   - a server can be flagged for a reason the operator already knows; an **"expected" acknowledgement** per service or
-    per server would let the round go clean (open item for M3);
+    per server lets the round go clean (added in 0.7.0: **Expected…**, and the `expected.txt` list file);
   - the **cause sits in SCM events 7000/7009/7022/7023/7024/7031/7034 since boot**, which WUGrid does not read yet;
     reading them for the flagged services would put the reason in the details window instead of a query by hand;
   - the 2-minute re-check works: a management agent's service flagged at the +5 min pass had started by the next one;

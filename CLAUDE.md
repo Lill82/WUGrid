@@ -40,7 +40,8 @@ the targeting pack. The legacy scripts are Windows PowerShell 5.1 — see the 5.
 ## Layout
 
 - `src/WUGrid.Core` — observation model, `StateClassifier`, `RoundSnapshot` / `IRoundSource`, `RoundTracker`
-  (transitions, alarms, all-clean), `LiveRound` (thread per server), `Probing/` (`ServerProbe` incl. baseline and
+  (transitions, alarms, all-clean), `ExpectedList` (expected service stops + list file), `LiveRound` (thread per
+  server), `Probing/` (`ServerProbe` incl. baseline and
   verification passes, `VerificationReader`, `AccessCheck`, WMI over DCOM), `Verification/` (records +
   `VerificationBuilder`, pure), `Reports/` (HTML/CSV), `Errors/` (catalog), `Restart/` (guard, action, audit log),
   `ServerList`, `Demo/` (scripted round).
@@ -70,6 +71,6 @@ the targeting pack. The legacy scripts are Windows PowerShell 5.1 — see the 5.
   `wugrid-cli verify`.
 - M3 first cut: Reboot window (`Restart/`: `RestartGuard`, `RestartAction`, `AuditLog`), never forced, check-only.
   First real run 2026-10-18: five servers restarted from the Reboot window in two batches and verified end to end
-  (FIELD-NOTES). Open: waves, protect list, CLI, acknowledging expected service stops, SCM start-failure events for
-  flagged services.
+  (FIELD-NOTES). Expected service stops (`ExpectedList`, `expected.txt`, Expected… window, `--expected`) since 0.7.0.
+  Open: waves, protect list, CLI, SCM start-failure events for flagged services.
 - Decide on event IDs + source + insertion strings (see `VerificationBuilder`); the Setup log is not readable over WMI.

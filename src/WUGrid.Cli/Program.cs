@@ -29,13 +29,15 @@ namespace WUGrid.Cli
                 default:
                     Console.WriteLine($"wugrid-cli {Assembly.GetExecutingAssembly().GetName().Version.ToString(3)}");
                     Console.WriteLine();
-                    Console.WriteLine("  wugrid-cli watch [SERVER ...] [--list FILE] [--since DATETIME] [--headless] [--state FILE] [--events FILE]");
+                    Console.WriteLine("  wugrid-cli watch [SERVER ...] [--list FILE] [--since DATETIME] [--expected FILE] [--headless] [--state FILE] [--events FILE]");
                     Console.WriteLine("                                     read-only live round: console grid (q quits), or --headless: one");
                     Console.WriteLine("                                     line per change and alarm until all are back clean (watch --help)");
                     Console.WriteLine("  wugrid-cli check SERVER [SERVER ...]   read-only reachability: DNS, ping, WMI over DCOM, admin$");
-                    Console.WriteLine("  wugrid-cli verify SERVER [SERVER ...] [--since 2026-10-17T15:00] [--html report.html] [--csv report.csv]");
+                    Console.WriteLine("  wugrid-cli verify SERVER [SERVER ...] [--since 2026-10-17T15:00] [--expected FILE] [--html report.html] [--csv report.csv]");
                     Console.WriteLine("                                     read-only: restarted after the cut-off? update results, who");
-                    Console.WriteLine("                                     restarted it, services not running (default cut-off: today 00:00)");
+                    Console.WriteLine("                                     restarted it, services not running (default cut-off: today 00:00);");
+                    Console.WriteLine("                                     --expected: stops the operator expects ([SERVER\\]SERVICE per line, // why;");
+                    Console.WriteLine("                                     default %APPDATA%\\WUGrid\\expected.txt), shown, not flagged");
                     Console.WriteLine("  wugrid-cli error CODE [CODE ...]       explain CBS / Windows Update / WMI / Win32 error codes");
                     Console.WriteLine();
                     Console.WriteLine("WUGrid.exe is the live grid with Servers, Reboot and Report windows; --demo plays a simulated round in either.");
@@ -63,7 +65,7 @@ namespace WUGrid.Cli
         static int Verify(IReadOnlyList<string> args)
         {
             var since = DateTime.Today;
-            string csv = null, html = null;
+            string csv = null, html = null, expectedPath = null;
             var names = new List<string>();
             for (var i = 0; i < args.Count; i++)
             {
@@ -73,11 +75,16 @@ namespace WUGrid.Cli
                 }
                 else if (args[i] == "--csv" && i + 1 < args.Count) csv = args[++i];
                 else if (args[i] == "--html" && i + 1 < args.Count) html = args[++i];
+                else if (args[i] == "--expected" && i + 1 < args.Count) expectedPath = args[++i];
                 else names.AddRange(ServerList.Parse(args[i]));
             }
-            if (names.Count == 0) { Console.Error.WriteLine("usage: wugrid-cli verify SERVER [SERVER ...] [--since DATETIME] [--html FILE] [--csv FILE]"); return 2; }
+            if (names.Count == 0) { Console.Error.WriteLine("usage: wugrid-cli verify SERVER [SERVER ...] [--since DATETIME] [--expected FILE] [--html FILE] [--csv FILE]"); return 2; }
+            if (expectedPath != null && !File.Exists(expectedPath)) { Console.Error.WriteLine($"--expected: no such file: {expectedPath}"); return 2; }
+            if (expectedPath == null && File.Exists(ExpectedList.DefaultPath)) expectedPath = ExpectedList.DefaultPath;
+            var expected = expectedPath != null ? ExpectedList.Load(expectedPath) : ExpectedList.Parse("");
 
-            Console.WriteLine($"Cut-off {since:yyyy-MM-dd HH:mm}: a server counts as restarted when it booted after it.");
+            Console.WriteLine($"Cut-off {since:yyyy-MM-dd HH:mm}: a server counts as restarted when it booted after it." +
+                              (expected.Count > 0 ? $" {expected.Count} expected stop{(expected.Count == 1 ? "" : "s")} from {expectedPath}." : ""));
             var observations = names.Distinct(StringComparer.OrdinalIgnoreCase).AsParallel().AsOrdered().WithDegreeOfParallelism(Math.Min(16, names.Count))
                                     .Select(n =>
                                     {
@@ -85,7 +92,7 @@ namespace WUGrid.Cli
                                             return new KeyValuePair<string, Observation>(n, probe.Poll());
                                     })
                                     .ToList();
-            var snap = new RoundSnapshot(DateTime.Now, since, observations);
+            var snap = new RoundSnapshot(DateTime.Now, since, observations, expected);
             foreach (var r in snap.Rows) Print(r);
 
             if (csv != null) File.WriteAllText(csv, RoundReport.Csv(snap), new UTF8Encoding(true));
@@ -117,7 +124,8 @@ namespace WUGrid.Cli
             foreach (var x in v.Restarts) Console.WriteLine($"  Restart     {RoundReport.RestartLine(x)}");
             if (v.UnexpectedShutdown) Console.WriteLine("  Unexpected shutdown logged (event 6008)");
             if (!v.ServicesChecked) Console.WriteLine("  Services    not checked yet: up less than 5 min");
-            foreach (var i in v.StoppedServices) Console.WriteLine($"  Service     {RoundReport.ServiceLine(i)}");
+            foreach (var i in r.UnexpectedStops) Console.WriteLine($"  Service     {RoundReport.ServiceLine(i)}");
+            foreach (var x in r.ExpectedStops) Console.WriteLine($"  Expected    {RoundReport.ExpectedLine(x)}");
             foreach (var removed in v.RemovedServices) Console.WriteLine($"  Removed     {RoundReport.RemovedLine(removed)} (marked for deletion before the restart)");
         }
 

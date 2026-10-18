@@ -15,6 +15,7 @@ namespace WUGrid.Core
         readonly object gate = new object();
         readonly Dictionary<string, Watcher> watchers = new Dictionary<string, Watcher>(StringComparer.OrdinalIgnoreCase);
         long intervalTicks;
+        volatile IReadOnlyList<ExpectedStop> expected = new List<ExpectedStop>();
 
         public LiveRound(DateTime since, TimeSpan interval)
         {
@@ -35,6 +36,12 @@ namespace WUGrid.Core
         public IReadOnlyList<string> Servers
         {
             get { lock (gate) return watchers.Keys.OrderBy(k => k, StringComparer.OrdinalIgnoreCase).ToList(); }
+        }
+
+        public IReadOnlyList<ExpectedStop> Expected
+        {
+            get => expected;
+            set => expected = value ?? new List<ExpectedStop>();
         }
 
         /// <summary>Starts workers for new names and stops the ones no longer listed.</summary>
@@ -64,7 +71,7 @@ namespace WUGrid.Core
         {
             List<KeyValuePair<string, Observation>> observations;
             lock (gate) observations = watchers.Select(kv => new KeyValuePair<string, Observation>(kv.Key, kv.Value.Latest)).ToList();
-            return new RoundSnapshot(DateTime.Now, Since, observations);
+            return new RoundSnapshot(DateTime.Now, Since, observations, expected);
         }
 
         public void Dispose()

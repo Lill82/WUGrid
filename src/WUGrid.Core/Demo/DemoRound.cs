@@ -34,6 +34,8 @@ namespace WUGrid.Core.Demo
 
         public bool Paused { get; set; }
 
+        public IReadOnlyList<ExpectedStop> Expected { get; set; } = new List<ExpectedStop>();
+
         public RoundSnapshot Snapshot()
         {
             var real = clock.Elapsed;
@@ -54,7 +56,7 @@ namespace WUGrid.Core.Demo
         /// <summary>The round as it stands <paramref name="elapsed"/> after the cut-off.</summary>
         public RoundSnapshot At(TimeSpan elapsed) =>
             new RoundSnapshot(Since + elapsed, Since,
-                              scripts.Select(s => new KeyValuePair<string, Observation>(s.Name, s.At(elapsed.TotalMinutes, Since))));
+                              scripts.Select(s => new KeyValuePair<string, Observation>(s.Name, s.At(elapsed.TotalMinutes, Since))), Expected);
 
         public void Dispose() { }
 

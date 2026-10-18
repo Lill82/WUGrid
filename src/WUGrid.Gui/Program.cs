@@ -64,6 +64,8 @@ namespace WUGrid.Gui
             using (var round = new LiveRound(since, TimeSpan.FromSeconds(5)))
             {
                 round.SetServers(names.Count > 0 ? names : ServerList.Load(listPath));
+                try { round.Expected = ExpectedList.Load(ExpectedList.DefaultPath); }
+                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException) { }   // the window says so when it cannot save
                 // Names on the command line are a one-off: they are not written over the saved list
                 Application.Run(new MainForm(round, names.Count > 0 ? null : listPath));
             }

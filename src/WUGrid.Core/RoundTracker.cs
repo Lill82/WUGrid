@@ -5,8 +5,9 @@ using System.Linq;
 namespace WUGrid.Core
 {
     /// <summary>Seen = a server's first state (at start, or when it joins the list). Action = something WUGrid sent to a
-    /// server (a restart), logged by whoever sent it.</summary>
-    public enum RoundEventKind { Seen, Transition, Alarm, AllClean, Action }
+    /// server (a restart), logged by whoever sent it. Expected = the operator marked a service stop as expected, or took
+    /// that back; nothing was sent to any server.</summary>
+    public enum RoundEventKind { Seen, Transition, Alarm, AllClean, Action, Expected }
 
     public sealed class RoundEvent
     {

@@ -107,6 +107,13 @@ Setup event 3) will show its codes through the same catalog.
   drops it at the next boot). Those are reported after the restart as removed, apart from the stopped ones, so the before
   and after counts reconcile ("3 of 24 that ran before the restart", "2 removed as planned"). A server first seen
   already restarted has no baseline; services then fall back to "Automatic, not running".
+- **Expected stops**: a service the operator knows will not run after the restart (a role being removed, an application
+  retired) is marked as expected — **Expected…** in the details window or the toolbar, or the list file
+  `%APPDATA%\WUGrid\expected.txt` (`[SERVER\]SERVICE // why`, `*` for every server; `wugrid-cli watch --expected FILE`,
+  re-read when it changes). The server is not flagged for it, so a round whose only remaining "problem" is a planned
+  removal goes clean; the stop stays visible with its reason in the details, the report, the JSON and the event pane,
+  and the entry's comment says who marked it and when. Nothing is sent to any server. The file is deliberately plain:
+  an operator who knows a removal is coming can write the line before the round.
 - **Verification passes** once it is BACK: on the first poll of each boot, then every 2 min until the boot settles (up 15
   min, TiWorker gone), then no more until the next boot or a "Check again". Each pass reads the System log since the
   cut-off — the first pass of a boot by time, later ones only records after the last seen (`RecordNumber`) — plus the
@@ -176,7 +183,7 @@ ConfigMgr or other management agent is assumed.
 | **M0** Foundation — done | Solution, build, tests; anonymised field notes and fixtures; licence; CI (GitHub Actions, windows runner); first commit | builds from a clean clone; no estate names in tracked files |
 | **M1** Watch (read-only) — built | Probe, monitor, live list reload, transitions + alarms log, state JSON; `wugrid-cli watch` (console grid, `--headless` events); GUI grid. Open: the parity run | parity with the legacy grid against real servers |
 | **M2** Verify (read-only) — done | Patch-level outcome, services baseline, who restarted / boot count, end-of-round report | catches the two green-but-wrong cases in the field notes (it caught a real third one on its first run) |
-| **M3** Restart — first cut done, first real run 18-10 | Reboot window: guards, re-check, never forced, confirmation, audit, check-only. Open: waves, protect list, CLI, acknowledging expected service stops, SCM start-failure events for flagged services (FIELD-NOTES) | a test server restarted and verified end to end — met 18-10: five servers in two batches from the Reboot window |
+| **M3** Restart — first cut done, first real run 18-10 | Reboot window: guards, re-check, never forced, confirmation, audit, check-only; expected service stops (0.7.0). Open: waves, protect list, CLI, SCM start-failure events for flagged services (FIELD-NOTES) | a test server restarted and verified end to end — met 18-10: five servers in two batches from the Reboot window |
 | **M4** Updates | Spike the routes above; WUA provider; scan → approve → install → restart (M3) → verify (M2) | a test wave patched end to end |
 | **M5** Release | Docs, release zip, versioning, (code signing) | public release |
 

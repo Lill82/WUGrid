@@ -26,7 +26,8 @@ namespace WUGrid.Gui
         int firstCode;
 
         /// <param name="recheck">Asks for a fresh verification (live rounds); null hides the button.</param>
-        public ServerDetailsForm(string server, Func<string, ServerRow> current, Action<string> recheck)
+        /// <param name="markExpected">Opens the expected-stops window for this server; null hides the button.</param>
+        public ServerDetailsForm(string server, Func<string, ServerRow> current, Action<string> recheck, Action<string> markExpected = null)
         {
             this.server = server;
             this.current = current;
@@ -59,6 +60,12 @@ namespace WUGrid.Gui
                 var again = new Button { Text = "Check again", AutoSize = true };
                 again.Click += (s, e) => recheck(server);
                 bar.Controls.Add(again);
+            }
+            if (markExpected != null)
+            {
+                var expected = new Button { Text = "Expected…", AutoSize = true };
+                expected.Click += (s, e) => markExpected(server);
+                bar.Controls.Add(expected);
             }
             CancelButton = close;
             Load += (s, e) => ActiveControl = close;   // not the text box: no caret blinking in the report (only once visible)
@@ -135,14 +142,27 @@ namespace WUGrid.Gui
                 if (v.UnexpectedShutdown) d.Line("An unexpected shutdown was logged (event 6008).", body, Palette.AlarmText);
 
                 d.Heading("Services");
-                var expected = o.Baseline?.RunningAutoServices.Count ?? 0;
+                var known = o.Baseline?.RunningAutoServices.Count ?? 0;
+                var flagged = r.UnexpectedStops;
+                var expected = r.ExpectedStops;
                 if (!v.ServicesChecked) d.Line($"Checked once the server has been up {VerificationLimits.ServicesAfter} min (delayed-start services).", body, Palette.MutedText);
-                else if (v.StoppedServices.Count == 0)
-                    d.Line(v.ComparedToBaseline ? $"Every service that ran before the restart is running ({expected} of {expected})." : "Every Automatic service is running.", body, Palette.CleanText);
                 else
                 {
-                    d.Line(v.ComparedToBaseline ? $"Ran before the restart, not running now ({v.StoppedServices.Count} of {expected}):" : "Automatic, not running (no baseline from before the restart):", body, Palette.MutedText);
-                    foreach (var i in v.StoppedServices) d.Line("• " + RoundReport.ServiceLine(i), body, Palette.AlarmText);
+                    if (flagged.Count == 0)
+                        d.Line(v.ComparedToBaseline
+                            ? (expected.Count == 0 ? $"Every service that ran before the restart is running ({known} of {known})."
+                                                   : $"Every other service that ran before the restart is running ({known - expected.Count} of {known}).")
+                            : (expected.Count == 0 ? "Every Automatic service is running." : "Every other Automatic service is running."), body, Palette.CleanText);
+                    else
+                    {
+                        d.Line(v.ComparedToBaseline ? $"Ran before the restart, not running now ({flagged.Count} of {known}):" : "Automatic, not running (no baseline from before the restart):", body, Palette.MutedText);
+                        foreach (var i in flagged) d.Line("• " + RoundReport.ServiceLine(i), body, Palette.AlarmText);
+                    }
+                    if (expected.Count > 0)
+                    {
+                        d.Line($"Not running, expected ({expected.Count}): shown, not flagged.", body, Palette.MutedText);
+                        foreach (var x in expected) d.Line("• " + RoundReport.ExpectedLine(x), body, Palette.MutedText);
+                    }
                 }
                 if (v.RemovedServices.Count > 0)
                 {
