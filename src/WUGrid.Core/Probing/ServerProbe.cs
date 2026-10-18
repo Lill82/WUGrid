@@ -45,6 +45,10 @@ namespace WUGrid.Core.Probing
         volatile bool verifyRequested;
         volatile Earlier earlier;
 
+        // What the activity log was last told, so it gets changes rather than one line per poll
+        bool? loggedPing;
+        string loggedWmiError, loggedVerifyError;
+
         /// <summary>The read of earlier boots: its status, and once done its records. Replaced whole, never changed.</summary>
         sealed class Earlier
         {
@@ -98,14 +102,18 @@ namespace WUGrid.Core.Probing
         void ReadEarlier(EarlierBootsRead status)
         {
             earlier = new Earlier(status, null);
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            ActivityLog.Info(host, $"earlier boots: reading the System log {status.From:yyyy-MM-dd} to {status.To:yyyy-MM-dd HH:mm}");
             try
             {
                 var events = VerificationReader.ReadEarlierBoots(Wmi.Connect(host, timeout), status.From, status.To);
                 earlier = new Earlier(status.Done(null), events);
+                ActivityLog.Info(host, $"earlier boots: {events.Count} records in {watch.Elapsed.TotalSeconds:0} s");
             }
             catch (Exception ex)
             {
                 earlier = new Earlier(status.Done($"{Wmi.FirstLine(ex.Message)} ({Errors.ErrorCatalog.Hex(Wmi.HResultOf(ex))})"), null);
+                ActivityLog.Warn(host, $"earlier boots: failed after {watch.Elapsed.TotalSeconds:0} s", ex);
             }
             verifyRequested = true;
         }
@@ -128,11 +136,17 @@ namespace WUGrid.Core.Probing
         Observation Read(Action<Observation> interim)
         {
             var o = new Observation { Ping = Pings(out var unresolved), NameUnresolved = unresolved };
+            if (o.Ping != loggedPing)
+            {
+                ActivityLog.Info(host, o.Ping == true ? "ping: answers" : unresolved ? "ping: name does not resolve" : "ping: no answer");
+                loggedPing = o.Ping;
+            }
             if (o.Ping == false)
             {
                 downSince = downSince ?? DateTime.Now;
                 o.DownSince = downSince;
                 last = WmiResult.NotYet;
+                loggedWmiError = null;
                 Drop();
                 return o;
             }
@@ -142,10 +156,13 @@ namespace WUGrid.Core.Probing
                 if (scope == null)
                 {
                     if (last == WmiResult.NotYet) interim?.Invoke(new Observation { Ping = true, Build = build, Baseline = baseline, Verification = verification });
+                    var watch = System.Diagnostics.Stopwatch.StartNew();
                     scope = Wmi.Connect(host, timeout);
                     registry = Wmi.Registry(scope);
+                    ActivityLog.Info(host, $"WMI: connected in {watch.ElapsedMilliseconds} ms");
                 }
                 ReadState(scope, registry, timeout, o);
+                loggedWmiError = null;
             }
             catch (Exception ex)
             {
@@ -153,6 +170,10 @@ namespace WUGrid.Core.Probing
                 o.WmiError = Wmi.FirstLine(ex.Message);
                 o.WmiHResult = Wmi.HResultOf(ex);
                 Drop();
+                // The same failure poll after poll (a server booting) is one entry
+                var problem = $"{o.WmiError} ({Errors.ErrorCatalog.Hex(o.WmiHResult)})";
+                if (problem != loggedWmiError) ActivityLog.Warn(host, "WMI: " + problem, ex);
+                loggedWmiError = problem;
             }
             last = o.Wmi;
             if (o.Wmi == WmiResult.Ok && since != null)
@@ -163,7 +184,10 @@ namespace WUGrid.Core.Probing
                 {
                     verifyError = $"{Wmi.FirstLine(ex.Message)} ({Errors.ErrorCatalog.Hex(Wmi.HResultOf(ex))})";
                     lastPass = DateTime.Now;
+                    if (verifyError != loggedVerifyError) ActivityLog.Warn(host, "verification: " + verifyError, ex);
                 }
+                if (verifyError == null && loggedVerifyError != null) ActivityLog.Info(host, "verification: working again");
+                loggedVerifyError = verifyError;
             }
             return o;
         }
@@ -206,6 +230,7 @@ namespace WUGrid.Core.Probing
                     // A service a role or application removal deleted while it still ran goes at the next boot: not expected back
                     var marked = VerificationReader.ReadMarkedForDeletion(registry, VerificationBuilder.BaselineCandidates(before), timeout);
                     baseline = VerificationBuilder.BuildBaseline(now, build, before, marked);
+                    ActivityLog.Info(host, $"baseline: build {build}, booted {boot:yyyy-MM-dd HH:mm} (before the cut-off), {before.Count} services read");
                 }
                 return;
             }
@@ -233,6 +258,10 @@ namespace WUGrid.Core.Probing
             var older = read != null && read.Status.To == cut ? read.Events : null;
             verification = VerificationBuilder.Build(now, boot, build, events, services, baseline, tiWorker, older);
             verifyError = null;
+            ActivityLog.Info(host, $"verification: boot {boot:yyyy-MM-dd HH:mm}, {fresh.Count} new records ({events.Count} since the cut-off), " +
+                                   (services == null ? "services not read yet" : $"{services.Count} services read") +
+                                   $", {verification.Failed.Count()} updates failed, {verification.StoppedServices.Count} services not running" +
+                                   (verification.Settled ? ", settled" : "") + $", {(DateTime.Now - now).TotalMilliseconds:0} ms");
         }
 
         bool Pings(out bool unresolved)

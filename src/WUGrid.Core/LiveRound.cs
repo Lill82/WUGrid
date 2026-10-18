@@ -50,13 +50,17 @@ namespace WUGrid.Core
             var want = new HashSet<string>(names, StringComparer.OrdinalIgnoreCase);
             lock (gate)
             {
-                foreach (var gone in watchers.Keys.Where(k => !want.Contains(k)).ToList())
+                var removed = watchers.Keys.Where(k => !want.Contains(k)).ToList();
+                foreach (var gone in removed)
                 {
                     watchers[gone].Stop();
                     watchers.Remove(gone);
                 }
-                foreach (var name in want.Where(n => !watchers.ContainsKey(n)))
+                var added = want.Where(n => !watchers.ContainsKey(n)).ToList();
+                foreach (var name in added)
                     watchers[name] = new Watcher(name, () => Interval, () => Since);
+                if (added.Count > 0) ActivityLog.Info(null, $"watching {added.Count} more: {string.Join(", ", added)}");
+                if (removed.Count > 0) ActivityLog.Info(null, $"no longer watching {removed.Count}: {string.Join(", ", removed)}");
             }
         }
 
@@ -100,7 +104,7 @@ namespace WUGrid.Core
             public Watcher(string name, Func<TimeSpan> interval, Func<DateTime> since)
             {
                 probe = new ServerProbe(name, CallTimeout, since);
-                new Thread(() => Run(interval)) { IsBackground = true, Name = "WUGrid " + name }.Start();
+                new Thread(() => Run(interval, name)) { IsBackground = true, Name = "WUGrid " + name }.Start();
             }
 
             public Observation Latest => latest;
@@ -121,13 +125,21 @@ namespace WUGrid.Core
                 wake = true;
             }
 
-            void Run(Func<TimeSpan> interval)
+            void Run(Func<TimeSpan> interval, string name)
             {
                 using (probe)
                     while (!stop)
                     {
                         wake = false;   // before the poll, so a request made during it still cuts the wait short
-                        var o = probe.Poll(interim => { if (!stop) latest = interim; });
+                        Observation o;
+                        // The probe catches what a server can throw at it; anything else is a WUGrid bug. Logged, and the
+                        // worker carries on, rather than one server taking the whole program down
+                        try { o = probe.Poll(interim => { if (!stop) latest = interim; }); }
+                        catch (Exception ex)
+                        {
+                            ActivityLog.Error(name, "poll failed unexpectedly; trying again at the next interval", ex);
+                            o = latest;
+                        }
                         if (stop) break;
                         latest = o;
                         // Re-read every slice, so a shorter interval takes effect without waiting out the old one

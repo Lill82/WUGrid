@@ -214,7 +214,11 @@ namespace WUGrid.Gui
                     try { result = RestartAction.Execute(name, since, options); }
                     finally { Throttle.Release(); }
                     try { audit.Restart(result, options, DateTime.Now); }
-                    catch (Exception ex) { result = new RestartResult(name, result.Outcome, result.Detail + $" (audit log not written: {ex.Message})", result.Code); }
+                    catch (Exception ex)
+                    {
+                        ActivityLog.Error(name, $"audit log not written ({audit.Path})", ex);
+                        result = new RestartResult(name, result.Outcome, result.Detail + $" (audit log not written: {ex.Message})", result.Code);
+                    }
                     if (!IsDisposed && IsHandleCreated) BeginInvoke((Action)(() => Done(result, options)));
                     else report(result, options);
                 });

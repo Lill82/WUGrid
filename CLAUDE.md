@@ -39,7 +39,8 @@ the targeting pack. The legacy scripts are Windows PowerShell 5.1 — see the 5.
 
 ## Layout
 
-- `src/WUGrid.Core` — observation model, `StateClassifier`, `RoundSnapshot` / `IRoundSource`, `RoundTracker`
+- `src/WUGrid.Core` — observation model, `StateClassifier`, `ActivityLog` (optional troubleshooting log, off by default) +
+  `Settings` (`settings.txt`), `RoundSnapshot` / `IRoundSource`, `RoundTracker`
   (transitions, alarms, all-clean), `ExpectedList` (expected service stops + list file), `LiveRound` (thread per
   server), `Probing/` (`ServerProbe` incl. baseline and
   verification passes, `VerificationReader`, `SessionReader` (who is signed in, read before a restart), `AccessCheck`,

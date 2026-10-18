@@ -39,6 +39,9 @@ namespace WUGrid.Cli
             "  --state FILE         write the round as JSON on every refresh, for other tools\n" +
             "  --events FILE        append every event to FILE, one JSON object per line\n" +
             "  --demo               play the simulated round instead; no server is contacted\n" +
+            "  --log                keep an activity log: what changed and every error, for troubleshooting\n" +
+            "                       (%APPDATA%\\WUGrid\\logs, kept 30 days; on without --log when turned on in\n" +
+            "                       WUGrid.exe, --no-log turns it off); --log-dir DIR puts it elsewhere\n" +
             "\n" +
             "Exit code: 0 when every server is back clean with its checks done, 1 otherwise, 2 for usage errors.";
 
@@ -138,6 +141,8 @@ namespace WUGrid.Cli
                     var events = tracker.Update(snap).ToList();
                     if (reread) events.Insert(0, new RoundEvent(snap.Now, RoundEventKind.Expected, null, $"expected stops re-read: {source.Expected.Count} ({expectedPath})"));
                     var problem = Save(statePath, eventsPath, snap, events, tracker.AllClean, live?.Interval);
+                    foreach (var e in events) ActivityLog.Info(e.Server, e.Text);
+                    if (problem != null && problem != warning) ActivityLog.Warn(null, problem);
 
                     if (headless)
                     {
@@ -202,6 +207,7 @@ namespace WUGrid.Cli
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
             {
+                ActivityLog.Warn(null, $"server list not re-read from {listPath}; trying again", ex);
                 return known;
             }
         }
@@ -221,6 +227,7 @@ namespace WUGrid.Cli
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
             {
+                ActivityLog.Warn(null, $"expected stops not re-read from {path}; trying again", ex);
                 return false;
             }
         }

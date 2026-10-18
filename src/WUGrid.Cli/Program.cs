@@ -19,13 +19,14 @@ namespace WUGrid.Cli
             // Redirected output (logs, pipes) gets UTF-8, so localized remote messages survive; the console's code page is left alone
             if (Console.IsOutputRedirected) Console.SetOut(new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false)) { AutoFlush = true });
 
+            ActivityLog.CatchUnhandled();
             var command = args.Length > 0 ? args[0].ToLowerInvariant() : "";
             var rest = args.Skip(1).ToList();
             switch (command)
             {
-                case "check": return Check(rest);
-                case "verify": return Verify(rest);
-                case "watch": return WatchCommand.Run(rest);
+                case "check": return Logged(rest, Check);
+                case "verify": return Logged(rest, Verify);
+                case "watch": return Logged(rest, WatchCommand.Run);
                 case "error": return Error(rest);
                 default:
                     Console.WriteLine($"wugrid-cli {Assembly.GetExecutingAssembly().GetName().Version.ToString(3)}");
@@ -43,9 +44,49 @@ namespace WUGrid.Cli
                     Console.WriteLine("                                     default %APPDATA%\\WUGrid\\expected.txt), shown, not flagged");
                     Console.WriteLine("  wugrid-cli error CODE [CODE ...]       explain CBS / Windows Update / WMI / Win32 error codes");
                     Console.WriteLine();
+                    Console.WriteLine("  watch, check and verify also take --log [--log-dir DIR]: keep an activity log of what they do and every");
+                    Console.WriteLine($"  error, for troubleshooting (default {ActivityLog.DefaultDirectory.Replace(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "%APPDATA%")}, kept {ActivityLog.KeepDays} days;");
+                    Console.WriteLine("  on without --log when turned on in WUGrid.exe; --no-log turns it off for the run).");
+                    Console.WriteLine();
                     Console.WriteLine("WUGrid.exe is the live grid with Servers, Reboot and Report windows; --demo plays a simulated round in either.");
                     return command == "" || command == "help" || command == "-h" || command == "--help" ? 0 : 2;
             }
+        }
+
+        static int Logged(List<string> args, Func<IReadOnlyList<string>, int> run)
+        {
+            if (!LogOption(args, out var problem)) { Console.Error.WriteLine(problem); return 2; }
+            if (ActivityLog.Current?.Problem is string p) Console.Error.WriteLine(p);
+            var code = 2;
+            try { return code = run(args); }
+            finally { ActivityLog.Info(null, $"--- wugrid-cli done, exit code {code}"); }
+        }
+
+        /// <summary>Takes --log, --log-dir DIR and --no-log out of the arguments and starts the activity log when asked for,
+        /// or when the saved setting (WUGrid.exe's status bar) has it on.</summary>
+        static bool LogOption(List<string> args, out string problem)
+        {
+            problem = null;
+            var on = Settings.IsOn(Settings.Get(ActivityLog.SettingName));
+            var dir = ActivityLog.DefaultDirectory;
+            for (var i = 0; i < args.Count; i++)
+            {
+                var a = args[i].ToLowerInvariant();
+                if (a == "--log") on = true;
+                else if (a == "--no-log") on = false;
+                else if (a == "--log-dir")
+                {
+                    if (i + 1 >= args.Count) { problem = "--log-dir: give a folder"; return false; }
+                    try { dir = Path.GetFullPath(args[i + 1]); }
+                    catch (Exception ex) when (ex is ArgumentException || ex is NotSupportedException || ex is PathTooLongException) { problem = $"--log-dir: {ex.Message}"; return false; }
+                    args.RemoveAt(i + 1);
+                    on = true;
+                }
+                else continue;
+                args.RemoveAt(i--);
+            }
+            if (on) ActivityLog.Start(dir, "wugrid-cli", $"wugrid-cli {Assembly.GetExecutingAssembly().GetName().Version.ToString(3)} {string.Join(" ", Environment.GetCommandLineArgs().Skip(1))}");
+            return true;
         }
 
         static int Check(IReadOnlyList<string> args)
@@ -56,6 +97,8 @@ namespace WUGrid.Cli
                                  .Select(s => AccessCheck.Run(s, TimeSpan.FromSeconds(15))).ToList();
             foreach (var r in results)
             {
+                ActivityLog.Info(r.Server, "check: " + string.Join(", ", new[] { ("DNS", r.Dns), ("ping", r.Ping), ("WMI", r.Wmi), ("admin$", r.AdminShare) }
+                    .Select(c => $"{c.Item1} {c.Item2.State}" + (c.Item2.State == CheckStatus.Failed ? $" ({c.Item2.Detail}, {ErrorCatalog.Hex(c.Item2.HResult)})" : ""))));
                 Console.WriteLine(r.Server);
                 Line("DNS", r.Dns);
                 Line("Ping", r.Ping);
@@ -107,7 +150,11 @@ namespace WUGrid.Cli
                                     })
                                     .ToList();
             var snap = new RoundSnapshot(DateTime.Now, since, observations, expected);
-            foreach (var r in snap.Rows) Print(r);
+            foreach (var r in snap.Rows)
+            {
+                ActivityLog.Info(r.Name, $"verify: {r.Status.Label}" + (r.Status.Note != "" ? $" ({r.Status.Note})" : "") + (r.Status.IsClean ? ", clean" : ""));
+                Print(r);
+            }
 
             if (csv != null) File.WriteAllText(csv, RoundReport.Csv(snap), new UTF8Encoding(true));
             if (html != null) File.WriteAllText(html, RoundReport.Html(snap), new UTF8Encoding(true));

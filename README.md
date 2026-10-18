@@ -88,6 +88,12 @@ wugrid-cli error 0x800F0840                 explain an error code
   there; hover the note for a summary.
 - An asterisk (`Access is denied. *`, `The RPC server is unavailable. *`) marks errors that are usually temporary while a
   server restarts; the footnote under the grid explains it. Decided on the error code, so it works in any language.
+- **Activity log** (optional, off by default): to work out afterwards what went wrong. Tick **Logging** in the status bar
+  (remembered, and followed by `wugrid-cli` too; right-click it to open the log folder) or with `--log` on either program (`--log-dir DIR` for
+  another folder, `--no-log` to skip it once in the CLI). One text file per program per day in `%APPDATA%\WUGrid\logs`,
+  kept 30 days: servers added and removed, ping and WMI coming and going, baselines and verification passes, every round
+  event and restart result, and every error with its code and stack trace — changes only, never a line per poll. An
+  unexpected error in the window is shown and logged instead of ending the program. It stays on your workstation.
 
 Requirements: Windows with .NET Framework 4.8 on the admin workstation; ICMP, DCOM/RPC (and SMB for the admin$ check) to
 the servers; an account that is an administrator on them (restarting also needs the remote shutdown right, which

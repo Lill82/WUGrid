@@ -41,7 +41,20 @@ Core layers:
 | `StateClassifier` | Pure `Observation` + cut-off + now → `ServerStatus`. All field-notes rules live here and are unit-tested. |
 | `ServerWatcher` / `RoundMonitor` | One long-running worker per server; the monitor owns the list (live reload), snapshots, transitions and alarms. GUI and CLI both host the same monitor in-process, so state stays typed (the legacy follower parsed formatted strings back out of JSON). |
 | Actions | `RestartAction`, update providers (`IUpdateProvider`), each with guards and audit. |
-| Outputs | State snapshot JSON, transitions/alarms log (JSONL), end-of-round CSV/HTML report. |
+| Outputs | State snapshot JSON, transitions/alarms log (JSONL), end-of-round CSV/HTML report, optional activity log. |
+
+### Activity log
+
+`ActivityLog` (Core) is an optional troubleshooting log, off unless the operator turns it on (GUI status bar, saved as
+`activity-log=on` in `%APPDATA%\WUGrid\settings.txt` and honoured by the CLI too; `--log` / `--log-dir` / `--no-log`).
+Plain text, one file per program per day (`WUGrid-yyyy-MM-dd.log`, `wugrid-cli-…`; a second copy the same day gets
+`-<pid>`), flushed every line so a crash keeps the last entry, pruned after 30 days by the date in the name. Process-wide
+static (`ActivityLog.Info/Warn/Error`), a no-op while off, and it never throws: a file it cannot write shows up as
+`Problem` (red in the status bar). It records changes, not polls — the probe remembers what it last logged for ping, WMI
+and verification errors — plus the round's events, restart failures, file save failures and, with stack traces,
+unhandled exceptions (`AppDomain`, unobserved tasks, the WinForms UI thread, which now shows the error and carries on).
+A worker whose poll throws something the probe did not catch logs it and keeps polling, rather than ending the process.
+Separate from the audit log: that one is the record of actions and is always on.
 
 ## What is observed
 

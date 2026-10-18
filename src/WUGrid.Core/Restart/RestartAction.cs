@@ -88,6 +88,7 @@ namespace WUGrid.Core.Restart
             }
             catch (Exception ex)
             {
+                ActivityLog.Warn(server, options.CheckOnly ? "restart check failed" : "restart failed", ex);
                 return new RestartResult(server, RestartOutcome.Failed, Wmi.FirstLine(ex.Message), Wmi.HResultOf(ex));
             }
             finally

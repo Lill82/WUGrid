@@ -17,14 +17,20 @@ namespace WUGrid.Gui
         /// WUGrid.exe --since 2026-10-17T15:00   round cut-off (default: today 00:00)
         /// WUGrid.exe --demo                simulated round
         /// WUGrid.exe --demo --screenshots DIR   saves the project page's screenshots of the demo, then exits
+        /// WUGrid.exe --log [--log-dir DIR]  keep an activity log this run (default %APPDATA%\WUGrid\logs; the status bar
+        ///                                  turns it on and off and remembers the choice)
         /// </summary>
         [STAThread]
         static void Main(string[] args)
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+            ActivityLog.CatchUnhandled();
+            Application.ThreadException += (s, e) => Unexpected(e.Exception);
+            commandLine = string.Join(" ", args);
 
             var demo = false;
+            var log = Settings.IsOn(Settings.Get(ActivityLog.SettingName));
             string screenshots = null;
             var since = DateTime.Today;
             var listPath = ServerList.DefaultPath;
@@ -33,6 +39,12 @@ namespace WUGrid.Gui
             {
                 var a = args[i];
                 if (a.Equals("--demo", StringComparison.OrdinalIgnoreCase)) demo = true;
+                else if (a.Equals("--log", StringComparison.OrdinalIgnoreCase)) log = true;
+                else if (a.Equals("--log-dir", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+                {
+                    LogDirectory = Path.GetFullPath(args[++i]);
+                    log = true;
+                }
                 else if (a.Equals("--screenshots", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length) screenshots = Path.GetFullPath(args[++i]);
                 else if (a.Equals("--list", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length) listPath = Path.GetFullPath(args[++i]);
                 else if (a.Equals("--since", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
@@ -45,6 +57,7 @@ namespace WUGrid.Gui
                 }
                 else names.AddRange(ServerList.Parse(a));
             }
+            if (log) StartLog();
 
             if (demo)
             {
@@ -65,10 +78,32 @@ namespace WUGrid.Gui
             {
                 round.SetServers(names.Count > 0 ? names : ServerList.Load(listPath));
                 try { round.Expected = ExpectedList.Load(ExpectedList.DefaultPath); }
-                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException) { }   // the window says so when it cannot save
+                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                {
+                    ActivityLog.Warn(null, $"expected stops not read from {ExpectedList.DefaultPath}", ex);   // the window says so when it cannot save
+                }
                 // Names on the command line are a one-off: they are not written over the saved list
                 Application.Run(new MainForm(round, names.Count > 0 ? null : listPath));
             }
+            ActivityLog.Info(null, "--- WUGrid closed");
+        }
+
+        static string commandLine;
+
+        /// <summary>Where the activity log goes: --log-dir, or %APPDATA%\WUGrid\logs.</summary>
+        public static string LogDirectory { get; private set; } = ActivityLog.DefaultDirectory;
+
+        public static void StartLog() =>
+            ActivityLog.Start(LogDirectory, "WUGrid", $"WUGrid {AppInfo.Version}" + (commandLine != "" ? $" {commandLine}" : ""));
+
+        // An exception on the UI thread: say so and keep the window open, rather than the bare .NET dialog
+        static void Unexpected(Exception ex)
+        {
+            ActivityLog.Error(null, "unexpected error in the window", ex);
+            var log = ActivityLog.Current;
+            MessageBox.Show($"Something went wrong in WUGrid:\n{ex.Message}\n\n" +
+                            (log != null ? $"The details are in the activity log:\n{log.File}" : "Turn on the activity log (status bar) to keep the details if it happens again."),
+                            "WUGrid", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 }

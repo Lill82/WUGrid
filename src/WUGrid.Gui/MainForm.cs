@@ -85,7 +85,7 @@ namespace WUGrid.Gui
                 ToolTipText = AppInfo.RepoUrl,
             };
             credit.Click += (s, e) => AppInfo.OpenRepo();
-            strip.Items.AddRange(new ToolStripItem[] { status, credit });
+            strip.Items.AddRange(new ToolStripItem[] { status, BuildLogButton(), credit });
 
             // Docking runs from the last control added: tool strip outermost, then the header, then the split fills the rest
             Controls.AddRange(new Control[] { split, BuildHeader(), BuildToolbar(), strip });
@@ -170,6 +170,51 @@ namespace WUGrid.Gui
             return bar;
         }
 
+        // A tick: off by default, the choice remembered for the next start (and for wugrid-cli); right-click opens the folder
+        ToolStripItem BuildLogButton()
+        {
+            var keep = new CheckBox { Text = "Logging", AutoSize = true, Checked = ActivityLog.Enabled, BackColor = Color.Transparent, Padding = new Padding(Px(4), 0, Px(4), 0) };
+            var open = new ToolStripMenuItem("Open the log folder");
+            keep.ContextMenuStrip = new ContextMenuStrip();
+            keep.ContextMenuStrip.Items.Add(open);
+            var tip = new ToolTip();
+            void Show()
+            {
+                var log = ActivityLog.Current;
+                keep.ForeColor = log?.Problem != null ? Palette.AlarmText : log != null ? Palette.Text : Palette.MutedText;
+                tip.SetToolTip(keep, (log == null
+                    ? "Activity log off: tick to keep what WUGrid does and every error, to look at afterwards"
+                    : log.Problem ?? $"Activity log on: {log.File ?? log.Directory}\nChanges and errors only, not every poll; kept {ActivityLog.KeepDays} days")
+                    + "\nRight-click to open the log folder");
+            }
+            keep.CheckedChanged += (s, e) =>
+            {
+                if (keep.Checked == ActivityLog.Enabled) return;
+                if (keep.Checked) Program.StartLog();
+                else ActivityLog.Stop();
+                try { Settings.Set(ActivityLog.SettingName, keep.Checked ? "on" : "off"); }
+                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                {
+                    MessageBox.Show(this, $"The log is {(keep.Checked ? "on" : "off")} for this run, but the choice could not be saved to {Settings.DefaultPath}:\n{ex.Message}",
+                                    "WUGrid", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+                Show();
+            };
+            open.Click += (s, e) =>
+            {
+                var dir = ActivityLog.Current?.Directory ?? Program.LogDirectory;
+                try
+                {
+                    Directory.CreateDirectory(dir);
+                    Process.Start(new ProcessStartInfo(dir) { UseShellExecute = true });
+                }
+                catch (Exception ex) { MessageBox.Show(this, $"Could not open {dir}:\n{ex.Message}", "WUGrid", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
+            };
+            timer.Tick += (s, e) => { if (ActivityLog.Current?.Problem != null || keep.ForeColor == Palette.AlarmText) Show(); };
+            Show();
+            return new ToolStripControlHost(keep) { BackColor = Color.Transparent };
+        }
+
         void EditServers()
         {
             using (var dialog = new ServersForm(live.Servers, checks))
@@ -179,7 +224,11 @@ namespace WUGrid.Gui
                 if (listPath != null)
                 {
                     try { ServerList.Save(listPath, dialog.Servers); }
-                    catch (Exception ex) { MessageBox.Show(this, $"Could not save the server list to {listPath}:\n{ex.Message}", "WUGrid", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
+                    catch (Exception ex)
+                    {
+                        ActivityLog.Warn(null, $"server list not saved to {listPath}", ex);
+                        MessageBox.Show(this, $"Could not save the server list to {listPath}:\n{ex.Message}", "WUGrid", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
                 }
                 ShowRound(live.Snapshot());
             }
@@ -233,7 +282,11 @@ namespace WUGrid.Gui
                 if (expectedPath != null)
                 {
                     try { ExpectedList.Save(expectedPath, after); }
-                    catch (Exception ex) { MessageBox.Show(this, $"Could not save the expected stops to {expectedPath}:\n{ex.Message}", "WUGrid", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
+                    catch (Exception ex)
+                    {
+                        ActivityLog.Warn(null, $"expected stops not saved to {expectedPath}", ex);
+                        MessageBox.Show(this, $"Could not save the expected stops to {expectedPath}:\n{ex.Message}", "WUGrid", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
                 }
                 ShowRound(source.Snapshot());
             }
@@ -285,6 +338,7 @@ namespace WUGrid.Gui
                 }
                 catch (Exception ex)
                 {
+                    ActivityLog.Warn(null, $"report not saved to {dialog.FileName}", ex);
                     MessageBox.Show(this, $"Could not save the report:\n{ex.Message}", "WUGrid", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
@@ -380,8 +434,12 @@ namespace WUGrid.Gui
             // Stays once shown: the event pane keeps the asterisked lines, and a footnote that comes and goes jolts the grid
             if (!footnote.Visible && snap.Rows.Any(r => r.Status.LikelyTransient)) footnote.Visible = true;
             UpdateHeader(snap);
-            // First states are what the grid already shows
-            foreach (var e in tracker.Update(snap)) if (e.Kind != RoundEventKind.Seen) AddEvent(e);
+            // First states are what the grid already shows; the activity log keeps them
+            foreach (var e in tracker.Update(snap))
+            {
+                if (e.Kind != RoundEventKind.Seen) AddEvent(e);
+                else ActivityLog.Info(e.Server, e.Text);
+            }
             status.Text = demo != null ? "Demo round: simulated, no servers are contacted."
                         : snap.Rows.Count == 0 ? "No servers yet: click Servers… to add some."
                         : $"{snap.Rows.Count} servers, polled every {live.Interval.TotalSeconds:0} s over ICMP and DCOM/WMI. Double-click a row for its update results, restarts and services.";
@@ -484,6 +542,7 @@ namespace WUGrid.Gui
 
         void AddEvent(RoundEvent e)
         {
+            ActivityLog.Info(e.Server, e.Text);
             var item = new ListViewItem(new[] { e.Time.ToString("HH:mm:ss"), e.Server ?? "", e.Text });
             if (e.Kind != RoundEventKind.Transition)
             {
