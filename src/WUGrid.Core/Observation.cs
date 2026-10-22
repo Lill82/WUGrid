@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace WUGrid.Core
 {
@@ -49,6 +50,11 @@ namespace WUGrid.Core
         /// <summary>Users signed in, one per session, active or disconnected: Windows refuses a restart that is not forced
         /// while there are any. Read only just before a restart, not by the poll; empty when none, or not read.</summary>
         public UserSession[] SignedIn { get; set; } = new UserSession[0];
+
+        /// <summary>Before the restart: updates downloading or installing since the cut-off (Windows Update 44/43, no 19/20
+        /// yet), read every <see cref="Probing.ServerProbe.VerifyEvery"/>. Empty once the server is back: its verification
+        /// carries them then.</summary>
+        public IReadOnlyList<Verification.UpdateInFlight> UpdatesInFlight { get; set; } = new Verification.UpdateInFlight[0];
 
         /// <summary>"17763.8880" (build.UBR) as last read, or null.</summary>
         public string Build { get; set; }

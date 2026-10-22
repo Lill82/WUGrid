@@ -54,6 +54,11 @@ namespace WUGrid.Core.Probing
             Records(scope, VerificationBuilder.EventCodes, $"TimeGenerated >= '{ManagementDateTimeConverter.ToDmtfDateTime(since)}'" +
                                                            (afterRecord > 0 ? $" AND RecordNumber > {afterRecord}" : ""), EventTimeout);
 
+        /// <summary>Only Windows Update's events, for a server not restarted yet: an update downloading now.</summary>
+        public static List<EventRecord> ReadUpdateEvents(ManagementScope scope, DateTime since, long afterRecord) =>
+            Records(scope, VerificationBuilder.UpdateCodes, $"TimeGenerated >= '{ManagementDateTimeConverter.ToDmtfDateTime(since)}'" +
+                                                            (afterRecord > 0 ? $" AND RecordNumber > {afterRecord}" : ""), EventTimeout);
+
         /// <summary>Boots and service failures from <paramref name="from"/> up to the cut-off <paramref name="to"/>: slow on a
         /// large log, so only on request.</summary>
         public static List<EventRecord> ReadEarlierBoots(ManagementScope scope, DateTime from, DateTime to) =>

@@ -42,6 +42,11 @@ namespace WUGrid.Core.Probing
         readonly List<EventRecord> events = new List<EventRecord>();
         DateTime eventsSince, eventsBoot, lastPass = DateTime.MinValue;
         long lastRecord;
+        // Before the restart: Windows Update's events since the cut-off, for updates downloading now
+        readonly List<EventRecord> updateEvents = new List<EventRecord>();
+        DateTime updatesSince, lastUpdatePass = DateTime.MinValue;
+        long lastUpdateRecord;
+        IReadOnlyList<UpdateInFlight> inFlightBefore = new UpdateInFlight[0];
         volatile bool verifyRequested;
         volatile Earlier earlier;
 
@@ -128,6 +133,7 @@ namespace WUGrid.Core.Probing
             o.Build = build;
             o.Baseline = baseline;
             o.Verification = verification;
+            o.UpdatesInFlight = inFlightBefore;
             o.VerificationError = verifyError;
             o.EarlierBoots = earlier?.Status;
             return o;
@@ -232,8 +238,10 @@ namespace WUGrid.Core.Probing
                     baseline = VerificationBuilder.BuildBaseline(now, build, before, marked);
                     ActivityLog.Info(host, $"baseline: build {build}, booted {boot:yyyy-MM-dd HH:mm} (before the cut-off), {before.Count} services read");
                 }
+                ReadUpdatesBefore(cut, now);
                 return;
             }
+            inFlightBefore = new UpdateInFlight[0];
 
             var due = verifyRequested || verification == null || verification.Boot != boot
                       || (!verification.Settled && now - lastPass >= VerifyEvery);
@@ -262,6 +270,30 @@ namespace WUGrid.Core.Probing
                                    (services == null ? "services not read yet" : $"{services.Count} services read") +
                                    $", {verification.Failed.Count()} updates failed, {verification.StoppedServices.Count} services not running" +
                                    (verification.Settled ? ", settled" : "") + $", {(DateTime.Now - now).TotalMilliseconds:0} ms");
+        }
+
+        /// <summary>Not restarted yet: an update downloading now installs later, perhaps after the restart (FIELD-NOTES 22-10).
+        /// Windows Update's events only, every <see cref="VerifyEvery"/>, after the first read only the new records.</summary>
+        void ReadUpdatesBefore(DateTime cut, DateTime now)
+        {
+            if (!verifyRequested && cut == updatesSince && now - lastUpdatePass < VerifyEvery) return;
+            verifyRequested = false;
+            lastUpdatePass = now;
+            if (cut != updatesSince)
+            {
+                updateEvents.Clear();
+                lastUpdateRecord = 0;
+                updatesSince = cut;
+            }
+            var fresh = VerificationReader.ReadUpdateEvents(scope, cut, lastUpdateRecord);
+            updateEvents.AddRange(fresh);
+            if (fresh.Count > 0) lastUpdateRecord = Math.Max(lastUpdateRecord, fresh.Max(e => e.RecordNumber));
+            var before = inFlightBefore.Count;
+            inFlightBefore = VerificationBuilder.UpdatesInFlight(updateEvents);
+            verifyError = null;
+            if (fresh.Count > 0 || inFlightBefore.Count != before)
+                ActivityLog.Info(host, $"updates before the restart: {fresh.Count} new records, {inFlightBefore.Count} not installed yet, " +
+                                       $"{(DateTime.Now - now).TotalMilliseconds:0} ms");
         }
 
         bool Pings(out bool unresolved)

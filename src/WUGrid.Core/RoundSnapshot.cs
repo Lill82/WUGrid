@@ -47,6 +47,10 @@ namespace WUGrid.Core
             }
         }
 
+        /// <summary>Updates downloading or installing with no result yet: from the verification once back, before the restart
+        /// from the poll's own read.</summary>
+        public IReadOnlyList<UpdateInFlight> UpdatesInFlight => CurrentVerification?.UpdatesInFlight ?? Observation.UpdatesInFlight;
+
         /// <summary>Services not running that flag the server.</summary>
         public IReadOnlyList<ServiceIssue> UnexpectedStops { get; }
 

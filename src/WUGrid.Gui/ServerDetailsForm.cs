@@ -138,6 +138,14 @@ namespace WUGrid.Gui
             if (v == null && s.State == ServerState.Back)
                 d.Line("\n" + L.T("Checking update results, restarts and services…"), body, Palette.MutedText);
 
+            if (v == null && o.UpdatesInFlight.Count > 0)
+            {
+                d.Heading(L.F("Updates not installed yet ({0})", o.UpdatesInFlight.Count));
+                InFlight(d, o.UpdatesInFlight);
+                d.Line(L.T("Not restarted yet: it installs later, perhaps after the restart, and may ask for another one. Checked every 2 min."),
+                       body, Palette.MutedText);
+            }
+
             if (v != null)
             {
                 d.Heading(L.F("Updates since the cut-off ({0})", v.Updates.Count));
@@ -152,12 +160,7 @@ namespace WUGrid.Gui
                         Explain(d, u.ErrorCode);
                     }
                 }
-                foreach (var u in v.UpdatesInFlight)
-                {
-                    d.Text("… ", heading, Palette.MutedText);
-                    d.Line($"{u.Time:dd-MM HH:mm}  {(u.Title != "" ? u.Title : u.UpdateId)}  " +
-                           (u.Installing ? L.T("(install started, no result yet)") : L.T("(download started, not installed yet)")), body, Palette.Text);
-                }
+                InFlight(d, v.UpdatesInFlight);
                 if (v.UpdatesInFlight.Count > 0)
                     d.Line(L.T("Not done yet: it installs later and may ask for another restart. Checked again every 2 min until it has a result."),
                            body, Palette.MutedText);
@@ -247,6 +250,16 @@ namespace WUGrid.Gui
         {
             var v = r?.CurrentVerification;
             return v != null && v.StoppedServices.Any(i => i.Failure != null);
+        }
+
+        void InFlight(Doc d, System.Collections.Generic.IReadOnlyList<Core.Verification.UpdateInFlight> updates)
+        {
+            foreach (var u in updates)
+            {
+                d.Text("… ", heading, Palette.MutedText);
+                d.Line($"{u.Time:dd-MM HH:mm}  {(u.Title != "" ? u.Title : u.UpdateId)}  " +
+                       (u.Installing ? L.T("(install started, no result yet)") : L.T("(download started, not installed yet)")), body, Palette.Text);
+            }
         }
 
         void Explain(Doc d, int code)

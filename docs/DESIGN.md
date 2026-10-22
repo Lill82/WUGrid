@@ -157,8 +157,10 @@ Setup event 3) will show its codes through the same catalog.
   does not block on it (a download resumes after a restart). 44 marks the start of a download; the System log has no
   "download finished" event, so the same state covers "downloaded, waiting for its install time" — which can be days
   (FIELD-NOTES). Not covered: downloads by other applications through BITS (any job sets BITS to Automatic (Delayed
-  Start), too noisy to read as an update), BITS / Delivery Optimization job lists (local-only API or a non-classic log),
-  and servers not yet restarted (no events are read before the restart).
+  Start), too noisy to read as an update) and BITS / Delivery Optimization job lists (local-only API or a non-classic
+  log). **Before the restart** (0.13.1) the probe reads only Windows Update's events (19/20/43/44) since the cut-off,
+  every 2 min, after the first read only the new records, and the RESTART PENDING / NO RESTART PENDING / INSTALLING
+  note names the update; a download that started before the cut-off is not seen.
 - **Why a service did not start** (0.9.0): for each service found not running, the Service Control Manager's latest
   failure for it since the boot — timed out at start (7009 carries the limit, 30 s by default; the 7000 logged with it
   defers to it), a service it depends on (7001), its account could not log on (7038), stopped with a Win32 error or its

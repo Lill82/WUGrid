@@ -27,6 +27,10 @@ namespace WUGrid.Core.Verification
         /// <summary>The System log events a verification reads. Event 20 is shared by several sources: filter by source too.</summary>
         public static readonly int[] EventCodes = new[] { 19, 20, 43, 44, 1074, 12, 6008, 7040 }.Concat(ServiceFailureCodes).ToArray();
 
+        /// <summary>Windows Update's own steps: result (19/20), install and download started (43/44). Read before the restart
+        /// too, for <see cref="UpdatesInFlight"/>.</summary>
+        public static readonly int[] UpdateCodes = { 19, 20, 43, 44 };
+
         /// <summary>What the read of earlier boots looks for: the boots, and the services' failures after them.</summary>
         public static readonly int[] EarlierBootCodes = new[] { 12 }.Concat(ServiceFailureCodes).ToArray();
 

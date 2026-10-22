@@ -80,7 +80,8 @@ the targeting pack. The legacy scripts are Windows PowerShell 5.1 — see the 5.
   run against real servers.
 - M2 done: baseline, verification passes, update-failed / service-not-running flags, details window, HTML/CSV report,
   `wugrid-cli verify`. Since 0.13.0 an update downloading or installing with no result yet (Windows Update 44/43 without
-  19/20) holds back "done" — clean row with a note, boot not settled, all-clean waits — and never blocks a restart.
+  19/20) holds back "done" — clean row with a note, boot not settled, all-clean waits — and never blocks a restart;
+  since 0.13.1 a server not restarted yet names it too (Windows Update events only, every 2 min).
 - M3 first cut: Reboot window (`Restart/`: `RestartGuard`, `RestartAction`, `AuditLog`), never forced, check-only.
   First real run 2026-10-18: five servers restarted from the Reboot window in two batches and verified end to end
   (FIELD-NOTES). Expected service stops (`ExpectedList`, `expected.txt`, Expected… window, `--expected`) since 0.7.0.

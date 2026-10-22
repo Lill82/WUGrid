@@ -64,7 +64,7 @@ namespace WUGrid.Core.Reports
                 .Str("build", o.Build)
                 .Raw("updatesFailed", Json.Array((v?.Failed ?? Enumerable.Empty<Verification.UpdateResult>())
                     .Select(u => new JsonObject().Str("update", u.Label).Str("code", ErrorCatalog.Hex(u.ErrorCode)).ToString())))
-                .Raw("updatesInFlight", Json.Array((v?.UpdatesInFlight ?? Enumerable.Empty<Verification.UpdateInFlight>())
+                .Raw("updatesInFlight", Json.Array(r.UpdatesInFlight
                     .Select(u => new JsonObject().Str("update", u.Label).Str("stage", u.Installing ? "installing" : "downloading")
                                                  .Time("since", u.Time).ToString())))
                 .Raw("servicesNotRunning", Json.Strings(r.UnexpectedStops.Select(i => i.Service.Name)))

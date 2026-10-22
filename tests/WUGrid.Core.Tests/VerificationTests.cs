@@ -450,6 +450,23 @@ namespace WUGrid.Core.Tests
             Assert.Equal("reboot pending again (WU); 2 updates not installed yet: KB5127648, KB5127690", s.Note);
         }
 
+        // FIELD-NOTES 22-10: a workstation up since two days before was downloading a feature update and the row said nothing
+        [Theory]
+        [InlineData(false, false, "NoRestartPending", "update not installed yet: KB5127648 (download started {0})")]
+        [InlineData(true, false, "RestartPending", "WU; update not installed yet: KB5127648 (download started {0})")]
+        [InlineData(false, true, "Installing", "update not installed yet: KB5127648 (download started {0})")]
+        public void UpdateInFlight_BeforeTheRestart_IsNamed(bool wuReboot, bool tiWorker, string state, string note)
+        {
+            var o = new Observation { Ping = true, Wmi = WmiResult.Ok, LastBoot = Since.AddDays(-2), WuRebootRequired = wuReboot, TiWorker = tiWorker,
+                                      UpdatesInFlight = new[] { Downloading } };
+            var s = StateClassifier.Classify(o, Since, Boot.AddMinutes(30));
+            Assert.Equal(state, s.State.ToString());
+            Assert.Equal(string.Format(note, Downloading.Time.ToString("HH:mm")), s.Note);
+            var snap = new RoundSnapshot(Boot.AddMinutes(30), Since, new[] { new KeyValuePair<string, Observation>("SRV01", o) });
+            Assert.Same(Downloading, Assert.Single(snap.Rows[0].UpdatesInFlight));
+            Assert.Contains("\"updatesInFlight\":[{\"update\":\"KB5127648\",\"stage\":\"downloading\"", RoundJson.State(snap, false, null).Replace(" ", ""));
+        }
+
         [Fact]
         public void UpdateInFlight_DoesNotBlockARestart() =>
             Assert.True(Restart.RestartGuard.Check(Back(WithInFlight(Downloading)), StateClassifier.Classify(Back(WithInFlight(Downloading)), Since, Boot.AddMinutes(30))).Allowed);

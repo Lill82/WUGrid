@@ -69,8 +69,8 @@ namespace WUGrid.Core.Reports
                     var failed = v.Updates.Count(u => !u.Succeeded);
                     if (ok > 0) h.Append("<span class=\"good\">").Append(ok).Append(" installed</span> ");
                     if (failed > 0) h.Append("<span class=\"bad\">").Append(failed).Append(" failed</span> ");
-                    if (v.UpdatesInFlight.Count > 0) h.Append("<span class=\"muted\">").Append(v.UpdatesInFlight.Count).Append(" not installed yet</span>");
                 }
+                if (r.UpdatesInFlight.Count > 0) h.Append("<span class=\"muted\">").Append(r.UpdatesInFlight.Count).Append(" not installed yet</span>");
                 h.Append("</td></tr>");
             }
             h.Append("</table>");
@@ -194,7 +194,7 @@ namespace WUGrid.Core.Reports
             yield return r.Observation.Build ?? "";
             yield return v == null ? "" : string.Join(" ", v.Updates.Where(u => u.Succeeded).Select(u => u.Label));
             yield return v == null ? "" : string.Join(" ", v.Failed.Select(u => $"{u.Label}:{ErrorCatalog.Hex(u.ErrorCode)}"));
-            yield return v == null ? "" : string.Join(" ", v.UpdatesInFlight.Select(u => $"{u.Label}:{(u.Installing ? "installing" : "downloading")}"));
+            yield return string.Join(" ", r.UpdatesInFlight.Select(u => $"{u.Label}:{(u.Installing ? "installing" : "downloading")}"));
             yield return string.Join(", ", r.UnexpectedStops.Select(i => i.Service.Name));
             yield return string.Join(", ", r.ExpectedStops.Select(x => x.Issue.Service.Name));
             yield return v == null ? "" : string.Join(", ", v.RemovedServices.Select(s => s.Name));

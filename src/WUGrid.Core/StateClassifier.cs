@@ -43,9 +43,11 @@ namespace WUGrid.Core
             var pending = PendingRestart(o);
             if (o.LastBoot.Value < since)
             {
-                if (o.TiWorker) return new ServerStatus(ServerState.Installing);
-                if (pending.Count > 0) return new ServerStatus(ServerState.RestartPending, note: string.Join("+", pending));
-                return new ServerStatus(ServerState.NoRestartPending, note: o.CbsRebootPending ? "component cleanup running" : "");
+                // An update still downloading before the restart installs later, maybe after it (FIELD-NOTES 22-10)
+                var coming = InFlight(o.UpdatesInFlight);
+                if (o.TiWorker) return new ServerStatus(ServerState.Installing, note: coming ?? "");
+                if (pending.Count > 0) return new ServerStatus(ServerState.RestartPending, note: Join(string.Join("+", pending), coming));
+                return new ServerStatus(ServerState.NoRestartPending, note: Join(o.CbsRebootPending ? "component cleanup running" : "", coming));
             }
 
             var up = Positive(now - o.LastBoot.Value);

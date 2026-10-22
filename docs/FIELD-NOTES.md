@@ -192,6 +192,9 @@ may set RebootRequired again. The System log carries the steps as `WindowsUpdate
 - **Download and install can be days apart**: two October updates logged 44 on 13-10 at 21:46, 43 on 16-10 at 14:18 and 19
   at 15:28; Edge WebView2 updates went 43 → 19 in about 30 s. There is no "download finished" event, so 44 alone means
   "downloading or downloaded, not installed yet". Since 0.13.0 that holds back "done" until the update has a result.
+- **The first one seen live was on a machine not restarted yet**: a workstation up for two days logged 44 twice for the
+  Windows 11 25H2 feature update (16:38 and 16:47, title with no KB) and the 0.13.0 row said nothing, because events
+  were read only once a server was back. Since 0.13.1 a server not restarted yet reads Windows Update's events too.
 - **BITS is not a usable signal here**: it switches itself to Automatic (Delayed Start) while it has any job, from any
   application (its 7040s every few minutes above), and the job list is only reachable locally. From Server 2019 Windows
   Update downloads through Delivery Optimization anyway. Event 44 comes from Windows Update itself, so it should appear
