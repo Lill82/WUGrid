@@ -292,6 +292,65 @@ namespace WUGrid.Core.Tests
         [InlineData(10, false, false)]
         public void Settled_WhenUpLongEnoughAndServicingDone(double up, bool tiWorker, bool settled) =>
             Assert.Equal(settled, Build(new EventRecord[0], upMinutes: up, tiWorker: tiWorker).Settled);
+
+        // 43 and 44 as a 25H2 workstation logs them (es-ES): [0] title, [1] update id, [2] revision. 44 version 0 has no title.
+        const string NetCu = "2026-10 Actualización acumulativa de .NET Framework 3.5 y 4.8.1 (KB5127690)";
+
+        static EventRecord WuDownloadStarted(int min, string id = Cu, string title = NetCu) =>
+            new EventRecord(WindowsUpdateClient, 44, Boot.AddMinutes(min), 300 + min, @"NT AUTHORITY\SYSTEM", title, id, "100");
+
+        static EventRecord WuInstallStarted(int min, string id = Cu, string title = NetCu) =>
+            new EventRecord(WindowsUpdateClient, 43, Boot.AddMinutes(min), 400 + min, @"NT AUTHORITY\SYSTEM", title, id, "100");
+
+        [Fact]
+        public void DownloadStarted_WithNoResult_IsInFlight_AndDoesNotSettle()
+        {
+            var v = Build(new[] { WuDownloadStarted(8) }, upMinutes: 60);
+            var u = Assert.Single(v.UpdatesInFlight);
+            Assert.Equal("KB5127690", u.Label);
+            Assert.False(u.Installing);
+            Assert.Equal(Boot.AddMinutes(8), u.Time);
+            Assert.Empty(v.Updates);
+            Assert.False(v.Settled);
+        }
+
+        [Fact]
+        public void InstallStarted_IsTheLatestStage() =>
+            Assert.True(Assert.Single(Build(new[] { WuDownloadStarted(8), WuInstallStarted(40) }).UpdatesInFlight).Installing);
+
+        [Fact]
+        public void AResult_EndsTheUpdateInFlight()
+        {
+            var v = Build(new[] { WuDownloadStarted(1), WuInstallStarted(2), WuInstalled(6) });
+            Assert.Empty(v.UpdatesInFlight);
+            Assert.True(v.Settled);
+            Assert.Empty(Build(new[] { WuInstallStarted(1), WuFailed(2) }).UpdatesInFlight);
+        }
+
+        [Fact]
+        public void ANewDownload_AfterAResult_IsInFlightAgain() =>
+            Assert.Single(Build(new[] { WuFailed(2), WuDownloadStarted(10) }).UpdatesInFlight);
+
+        [Fact]
+        public void UntitledDownloadEvent_IsMatchedOnTheUpdateId_WhateverItsBracesAndCase()
+        {
+            var old44 = new EventRecord(WindowsUpdateClient, 44, Boot.AddMinutes(1), 301, @"NT AUTHORITY\SYSTEM", Cu.Trim('{', '}').ToUpperInvariant(), "200");
+            var u = Assert.Single(Build(new[] { old44 }).UpdatesInFlight);
+            Assert.Equal(Cu.Trim('{', '}'), u.Label);
+            Assert.Empty(Build(new[] { old44, WuInstalled(5) }).UpdatesInFlight);
+        }
+
+        [Fact]
+        public void OtherUpdates_KeepTheirOwnStage()
+        {
+            var v = Build(new[] { WuDownloadStarted(1), WuDownloadStarted(1, "{01b92d3a-0000-0000-0000-000000000000}", "Security Intelligence Update (KB2267602)"),
+                                  WuInstalled(3, "{01b92d3a-0000-0000-0000-000000000000}", "Security Intelligence Update (KB2267602)") });
+            Assert.Equal("KB5127690", Assert.Single(v.UpdatesInFlight).Kb);
+        }
+
+        [Fact]
+        public void Events43And44_FromOtherSources_AreNotUpdates() =>
+            Assert.Empty(Build(new[] { new EventRecord("Microsoft-Windows-Kernel-Power", 44, Boot, 5, "", "1", "2") }).UpdatesInFlight);
     }
 
     public class VerificationFlagTests
@@ -353,6 +412,47 @@ namespace WUGrid.Core.Tests
             Assert.Equal(BackFlag.RebootPending | BackFlag.UpdateFailed, s.Flag);
             Assert.StartsWith("reboot pending again (WU); update failed", s.Note);
         }
+
+        static ServerVerification WithInFlight(params UpdateInFlight[] inFlight) =>
+            new ServerVerification(Boot.AddMinutes(20), Boot, "17763.8880", new UpdateResult[0], new RestartRecord[0], new BootRecord[0],
+                                   false, new ServiceIssue[0], true, true, false, updatesInFlight: inFlight);
+
+        static readonly UpdateInFlight Downloading = new UpdateInFlight(Boot.AddMinutes(8), "2026-10 Cumulative Update (KB5127648)", "KB5127648", "{c}", false);
+
+        // An update downloading after the restart installs later and may want another: the row stays clean, the round not done
+        [Fact]
+        public void UpdateInFlight_KeepsTheRowClean_ButTheRoundNotDone()
+        {
+            var o = Back(WithInFlight(Downloading));
+            var s = StateClassifier.Classify(o, Since, Boot.AddMinutes(30));
+            Assert.True(s.IsClean);
+            Assert.Equal(BackActivity.UpdatesInFlight, s.Activity);
+            Assert.Equal($"update not installed yet: KB5127648 (download started {Boot.AddMinutes(8):HH:mm})", s.Note);
+
+            var snap = new RoundSnapshot(Boot.AddMinutes(30), Since, new[] { new KeyValuePair<string, Observation>("SRV01", o) });
+            Assert.False(snap.Rows[0].ChecksDone);
+            var tracker = new RoundTracker();
+            Assert.DoesNotContain(tracker.Update(snap), e => e.Kind == RoundEventKind.AllClean);
+            Assert.False(tracker.AllClean);
+
+            o.Verification = WithInFlight();
+            snap = new RoundSnapshot(Boot.AddMinutes(32), Since, new[] { new KeyValuePair<string, Observation>("SRV01", o) });
+            Assert.Contains(tracker.Update(snap), e => e.Kind == RoundEventKind.AllClean);
+        }
+
+        [Fact]
+        public void UpdatesInFlight_OnAFlaggedRow_AreNamedToo()
+        {
+            var o = Back(WithInFlight(Downloading, new UpdateInFlight(Boot.AddMinutes(9), "x (KB5127690)", "KB5127690", "{d}", true)));
+            o.WuRebootRequired = true;
+            var s = StateClassifier.Classify(o, Since, Boot.AddMinutes(30));
+            Assert.Equal(BackFlag.RebootPending, s.Flag);
+            Assert.Equal("reboot pending again (WU); 2 updates not installed yet: KB5127648, KB5127690", s.Note);
+        }
+
+        [Fact]
+        public void UpdateInFlight_DoesNotBlockARestart() =>
+            Assert.True(Restart.RestartGuard.Check(Back(WithInFlight(Downloading)), StateClassifier.Classify(Back(WithInFlight(Downloading)), Since, Boot.AddMinutes(30))).Allowed);
 
         [Fact]
         public void VerificationOfAnEarlierBoot_DoesNotCount()

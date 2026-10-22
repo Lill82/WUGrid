@@ -101,6 +101,35 @@ namespace WUGrid.Core.Verification
         public string Label => Kb != "" ? Kb : Title;
     }
 
+    /// <summary>An update Windows Update started downloading (event 44) or installing (event 43) since the cut-off and has
+    /// logged no result for yet (19/20). It installs later and may ask for another restart, so the round is not done.</summary>
+    public sealed class UpdateInFlight
+    {
+        public UpdateInFlight(DateTime time, string title, string kb, string updateId, bool installing)
+        {
+            Time = time;
+            Title = title ?? "";
+            Kb = kb ?? "";
+            UpdateId = updateId ?? "";
+            Installing = installing;
+        }
+
+        /// <summary>When its latest event (43 or 44) was logged.</summary>
+        public DateTime Time { get; }
+
+        /// <summary>As Windows Update named it, in the server's language; "" when only an older 44 (no title) was seen.</summary>
+        public string Title { get; }
+
+        public string Kb { get; }
+        public string UpdateId { get; }
+
+        /// <summary>Install started (43); otherwise download started (44), which can also mean downloaded and waiting for its
+        /// install time: the System log has no "download finished" event.</summary>
+        public bool Installing { get; }
+
+        public string Label => Kb != "" ? Kb : Title != "" ? Title : UpdateId;
+    }
+
     /// <summary>A shutdown or restart someone or something asked for (System event 1074).</summary>
     public sealed class RestartRecord
     {
@@ -168,7 +197,7 @@ namespace WUGrid.Core.Verification
         public ServerVerification(DateTime checkedAt, DateTime boot, string build, IReadOnlyList<UpdateResult> updates,
                                   IReadOnlyList<RestartRecord> restarts, IReadOnlyList<BootRecord> boots, bool unexpectedShutdown,
                                   IReadOnlyList<ServiceIssue> stoppedServices, bool servicesChecked, bool comparedToBaseline, bool settled,
-                                  IReadOnlyList<ServiceRecord> removedServices = null)
+                                  IReadOnlyList<ServiceRecord> removedServices = null, IReadOnlyList<UpdateInFlight> updatesInFlight = null)
         {
             CheckedAt = checkedAt;
             Boot = boot;
@@ -182,6 +211,7 @@ namespace WUGrid.Core.Verification
             ComparedToBaseline = comparedToBaseline;
             Settled = settled;
             RemovedServices = removedServices ?? new List<ServiceRecord>();
+            UpdatesInFlight = updatesInFlight ?? new List<UpdateInFlight>();
         }
 
         public DateTime CheckedAt { get; }
@@ -193,6 +223,10 @@ namespace WUGrid.Core.Verification
 
         /// <summary>Last result per update since the cut-off.</summary>
         public IReadOnlyList<UpdateResult> Updates { get; }
+
+        /// <summary>Updates started (download or install) since the cut-off with no result yet: the boot does not settle and the
+        /// round is not done while there are any.</summary>
+        public IReadOnlyList<UpdateInFlight> UpdatesInFlight { get; }
 
         public IReadOnlyList<RestartRecord> Restarts { get; }
         public IReadOnlyList<BootRecord> Boots { get; }
@@ -213,7 +247,7 @@ namespace WUGrid.Core.Verification
         /// <summary>Services were compared with a baseline taken before the restart (otherwise: Automatic but not running).</summary>
         public bool ComparedToBaseline { get; }
 
-        /// <summary>Up long enough and servicing finished: no more checks needed for this boot.</summary>
+        /// <summary>Up long enough, servicing finished and no update in flight: no more checks needed for this boot.</summary>
         public bool Settled { get; }
 
         public IEnumerable<UpdateResult> Failed

@@ -16,7 +16,7 @@ namespace WUGrid.Core.Reports
         static readonly string[] Columns =
         {
             "Server", "State", "Note", "Last boot", "Boots in round", "Restarted by", "Build before", "Build now",
-            "Updates installed", "Updates failed", "Services not running", "Expected stops", "Services removed", "Checked",
+            "Updates installed", "Updates failed", "Updates not installed yet", "Services not running", "Expected stops", "Services removed", "Checked",
         };
 
         /// <param name="separator">Defaults to the culture's list separator, which is what Excel splits on.</param>
@@ -68,7 +68,8 @@ namespace WUGrid.Core.Reports
                     var ok = v.Updates.Count(u => u.Succeeded);
                     var failed = v.Updates.Count(u => !u.Succeeded);
                     if (ok > 0) h.Append("<span class=\"good\">").Append(ok).Append(" installed</span> ");
-                    if (failed > 0) h.Append("<span class=\"bad\">").Append(failed).Append(" failed</span>");
+                    if (failed > 0) h.Append("<span class=\"bad\">").Append(failed).Append(" failed</span> ");
+                    if (v.UpdatesInFlight.Count > 0) h.Append("<span class=\"muted\">").Append(v.UpdatesInFlight.Count).Append(" not installed yet</span>");
                 }
                 h.Append("</td></tr>");
             }
@@ -193,6 +194,7 @@ namespace WUGrid.Core.Reports
             yield return r.Observation.Build ?? "";
             yield return v == null ? "" : string.Join(" ", v.Updates.Where(u => u.Succeeded).Select(u => u.Label));
             yield return v == null ? "" : string.Join(" ", v.Failed.Select(u => $"{u.Label}:{ErrorCatalog.Hex(u.ErrorCode)}"));
+            yield return v == null ? "" : string.Join(" ", v.UpdatesInFlight.Select(u => $"{u.Label}:{(u.Installing ? "installing" : "downloading")}"));
             yield return string.Join(", ", r.UnexpectedStops.Select(i => i.Service.Name));
             yield return string.Join(", ", r.ExpectedStops.Select(x => x.Issue.Service.Name));
             yield return v == null ? "" : string.Join(", ", v.RemovedServices.Select(s => s.Name));

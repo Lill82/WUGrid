@@ -139,15 +139,26 @@ Setup event 3) will show its codes through the same catalog.
   and the entry's comment says who marked it and when. Nothing is sent to any server. The file is deliberately plain:
   an operator who knows a removal is coming can write the line before the round.
 - **Verification passes** once it is BACK: on the first poll of each boot, then every 2 min until the boot settles (up 15
-  min, TiWorker gone), then no more until the next boot or a "Check again". Each pass reads the System log since the
+  min, TiWorker gone, no update in flight), then no more until the next boot or a "Check again". Each pass reads the System log since the
   cut-off — the first pass of a boot by time, later ones only records after the last seen (`RecordNumber`) — plus the
   build and, once up 5 min (delayed-start services), the services.
 - From the System log, decided on event ID + source + data fields, never message text:
   `WindowsUpdateClient` 19/20 (install result per update; last result wins; event 20's first field is the HRESULT),
+  43/44 (install / download started: an update whose latest event is one of these is **in flight** — see below),
   `User32` 1074 (who restarted, process, reason code, comment), `Kernel-General` 12 (each boot and the build.UBR it came
   up on), `EventLog` 6008 (unexpected shutdown), `Service Control Manager` 7040 (who changed a service's start type —
   only used to explain a service found not running; BITS flips its own start type every few minutes), and its failure
   events 7000/7001/7009/7011/7022/7023/7024/7031/7034/7038 (why a service is not running — next bullet).
+- **Updates in flight** (0.13.0): an update Windows Update started downloading (44) or installing (43) since the cut-off,
+  with no 19/20 for it yet (matched on the update ID; 44 version 0, on older builds, carries no title). It will install
+  later and may want another restart, so it holds back "done" and nothing else: the row stays clean with the note
+  `update not installed yet: KB… (download started HH:mm)` (also on a flagged row), the boot does not settle (passes go on
+  every 2 min, which is how the result is seen), `ChecksDone` stays false so all-clean waits, and the Reboot window
+  does not block on it (a download resumes after a restart). 44 marks the start of a download; the System log has no
+  "download finished" event, so the same state covers "downloaded, waiting for its install time" — which can be days
+  (FIELD-NOTES). Not covered: downloads by other applications through BITS (any job sets BITS to Automatic (Delayed
+  Start), too noisy to read as an update), BITS / Delivery Optimization job lists (local-only API or a non-classic log),
+  and servers not yet restarted (no events are read before the restart).
 - **Why a service did not start** (0.9.0): for each service found not running, the Service Control Manager's latest
   failure for it since the boot — timed out at start (7009 carries the limit, 30 s by default; the 7000 logged with it
   defers to it), a service it depends on (7001), its account could not log on (7038), stopped with a Win32 error or its

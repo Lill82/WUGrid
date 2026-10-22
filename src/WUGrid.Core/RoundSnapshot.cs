@@ -54,13 +54,14 @@ namespace WUGrid.Core
         public IReadOnlyList<ExpectedServiceStop> ExpectedStops { get; }
 
         /// <summary>The checks for the current boot are in: update results read, and services checked once it has been up
-        /// <see cref="Verification.VerificationBuilder.ServicesAfter"/>. Until then a clean BACK can still hide a failure.</summary>
+        /// <see cref="Verification.VerificationBuilder.ServicesAfter"/>. Until then a clean BACK can still hide a failure.
+        /// Not while an update is downloading or installing either: it installs later and may want another restart.</summary>
         public bool ChecksDone
         {
             get
             {
                 var v = Observation.Verification;
-                return v != null && v.Boot == Observation.LastBoot && v.ServicesChecked;
+                return v != null && v.Boot == Observation.LastBoot && v.ServicesChecked && v.UpdatesInFlight.Count == 0;
             }
         }
     }

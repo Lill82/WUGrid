@@ -165,6 +165,9 @@ Why WMI does not answer	Per què WMI no respon
 Checking update results, restarts and services…	Comprovant actualitzacions, reinicis i serveis…
 Updates since the cut-off ({0})	Actualitzacions des del tall ({0})
 No Windows Update installs logged.	No hi ha instal·lacions de Windows Update registrades.
+(install started, no result yet)	(instal·lació iniciada, encara sense resultat)
+(download started, not installed yet)	(descàrrega iniciada, encara sense instal·lar)
+Not done yet: it installs later and may ask for another restart. Checked again every 2 min until it has a result.	Encara no s'ha acabat: s'instal·larà més tard i pot demanar un altre reinici. Es torna a comprovar cada 2 min fins que tingui resultat.
 Restarts ({0}) and boots ({1})	Reinicis ({0}) i arrencades ({1})
 Booted {0}	Ha arrencat {0}
 An unexpected shutdown was logged (event 6008).	Es va registrar una aturada inesperada (esdeveniment 6008).

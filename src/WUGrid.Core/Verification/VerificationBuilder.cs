@@ -25,7 +25,7 @@ namespace WUGrid.Core.Verification
         public static readonly int[] ServiceFailureCodes = { 7000, 7001, 7009, 7011, 7022, 7023, 7024, 7031, 7034, 7038 };
 
         /// <summary>The System log events a verification reads. Event 20 is shared by several sources: filter by source too.</summary>
-        public static readonly int[] EventCodes = new[] { 19, 20, 1074, 12, 6008, 7040 }.Concat(ServiceFailureCodes).ToArray();
+        public static readonly int[] EventCodes = new[] { 19, 20, 43, 44, 1074, 12, 6008, 7040 }.Concat(ServiceFailureCodes).ToArray();
 
         /// <summary>What the read of earlier boots looks for: the boots, and the services' failures after them.</summary>
         public static readonly int[] EarlierBootCodes = new[] { 12 }.Concat(ServiceFailureCodes).ToArray();
@@ -84,6 +84,7 @@ namespace WUGrid.Core.Verification
             var servicesChecked = services != null && up >= ServicesAfter;
             var stopped = servicesChecked ? StoppedServices(services, baseline, list, boot, earlier) : new List<ServiceIssue>();
             var removed = servicesChecked && baseline != null ? RemovedServices(services, baseline) : new List<ServiceRecord>();
+            var inFlight = UpdatesInFlight(list);
 
             return new ServerVerification(
                 now, boot, build,
@@ -92,8 +93,8 @@ namespace WUGrid.Core.Verification
                 list.Where(e => e.Code == 12 && e.Source == KernelGeneral).Select(BootOf).ToList(),
                 list.Any(e => e.Code == 6008 && e.Source == EventLog),
                 stopped, servicesChecked, servicesChecked && baseline != null,
-                settled: up >= SettledAfter && !tiWorker,
-                removedServices: removed);
+                settled: up >= SettledAfter && !tiWorker && inFlight.Count == 0,
+                removedServices: removed, updatesInFlight: inFlight);
         }
 
         /// <summary>Last result per update (a failure followed by a success is a success).</summary>
@@ -113,6 +114,32 @@ namespace WUGrid.Core.Verification
                           .Select(g => g.OrderBy(u => u.Time).Last())
                           .OrderBy(u => u.Time)
                           .ToList();
+        }
+
+        /// <summary>Updates whose latest Windows Update event is "download started" (44) or "install started" (43); a result
+        /// (19/20) for the same update ends it. Matched on the update ID, whatever its braces and case.</summary>
+        public static IReadOnlyList<UpdateInFlight> UpdatesInFlight(IEnumerable<EventRecord> events)
+        {
+            // 43, 44: [0] title, [1] update id; 44 version 0 (older builds) has no title: [0] update id, [1] revision
+            var steps = events.Where(e => e.Source == WindowsUpdateClient && (e.Code == 19 || e.Code == 20 || e.Code == 43 || e.Code == 44))
+                              .Select(e =>
+                              {
+                                  var untitled = e.Code == 44 && Guid.TryParse(e.At(0), out _);
+                                  var title = untitled ? "" : e.Code == 20 ? e.At(1) : e.At(0);
+                                  var id = untitled ? e.At(0) : e.Code == 20 ? e.At(2) : e.At(1);
+                                  return (Event: e, Title: title, Id: Guid.TryParse(id, out var g) ? g.ToString() : id);
+                              });
+            return steps.GroupBy(x => x.Id != "" ? x.Id : x.Title, StringComparer.OrdinalIgnoreCase)
+                        .Select(g => g.OrderBy(x => x.Event.Time).ThenBy(x => x.Event.RecordNumber).ToList())
+                        .Where(g => g[g.Count - 1].Event.Code == 43 || g[g.Count - 1].Event.Code == 44)
+                        .Select(g =>
+                        {
+                            var last = g[g.Count - 1];
+                            var title = g.Select(x => x.Title).LastOrDefault(t => t != "") ?? "";
+                            return new UpdateInFlight(last.Event.Time, title, KbOf(title), last.Id, last.Event.Code == 43);
+                        })
+                        .OrderBy(u => u.Time)
+                        .ToList();
         }
 
         public static string KbOf(string title)

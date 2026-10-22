@@ -152,6 +152,15 @@ namespace WUGrid.Gui
                         Explain(d, u.ErrorCode);
                     }
                 }
+                foreach (var u in v.UpdatesInFlight)
+                {
+                    d.Text("… ", heading, Palette.MutedText);
+                    d.Line($"{u.Time:dd-MM HH:mm}  {(u.Title != "" ? u.Title : u.UpdateId)}  " +
+                           (u.Installing ? L.T("(install started, no result yet)") : L.T("(download started, not installed yet)")), body, Palette.Text);
+                }
+                if (v.UpdatesInFlight.Count > 0)
+                    d.Line(L.T("Not done yet: it installs later and may ask for another restart. Checked again every 2 min until it has a result."),
+                           body, Palette.MutedText);
 
                 d.Heading(L.F("Restarts ({0}) and boots ({1})", v.Restarts.Count, v.Boots.Count));
                 foreach (var x in v.Restarts) d.Line(RoundReport.RestartLine(x), body, Palette.Text);

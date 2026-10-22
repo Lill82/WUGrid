@@ -90,9 +90,15 @@ namespace WUGrid.Core
             // A flagged row still says TiWorker is running: updates installed after the restart stage packages, so the row
             // goes BACK · PENDING while TiWorker works (FIELD-NOTES, 18-10 evening)
             if (flags != BackFlag.None && o.TiWorker) notes.Add("TiWorker running");
+            // An update downloading or installing after the restart installs later and may want another restart: not a
+            // problem, but the round is not done until it has a result
+            var inFlight = v != null && v.Boot == o.LastBoot.Value ? InFlight(v.UpdatesInFlight) : null;
+            if (flags != BackFlag.None && inFlight != null) notes.Add(inFlight);
             if (flags != BackFlag.None)
                 return new ServerStatus(ServerState.Back, flags, elapsed: up, note: Join(string.Join("; ", notes), expectedNote));
 
+            if (inFlight != null)
+                return new ServerStatus(ServerState.Back, activity: BackActivity.UpdatesInFlight, elapsed: up, note: Join(inFlight, expectedNote));
             if (o.CbsRebootPending)
                 return new ServerStatus(ServerState.Back, activity: BackActivity.ComponentCleanup, elapsed: up, note: Join("component cleanup running", expectedNote));
             if (o.TiWorker)
@@ -107,6 +113,12 @@ namespace WUGrid.Core
         /// one that fails for the first time points at the restart (FIELD-NOTES, 18-10 evening).</summary>
         static string Why(Verification.ServiceFailure f) =>
             f == null ? "" : $" ({f.ShortReason}{(f.ShortEarlier != "" ? "; " + f.ShortEarlier : "")})";
+
+        /// <summary>"update not installed yet: KB5127648 (download started 13:05)", or null when there is none.</summary>
+        static string InFlight(IReadOnlyList<Verification.UpdateInFlight> updates) =>
+            updates.Count == 0 ? null
+            : updates.Count == 1 ? $"update not installed yet: {updates[0].Label} ({(updates[0].Installing ? "install" : "download")} started {updates[0].Time:HH:mm})"
+            : $"{updates.Count} updates not installed yet: {string.Join(", ", updates.Select(u => u.Label))}";
 
         static string Join(string note, string extra) => extra == null ? note : note == "" ? extra : note + "; " + extra;
 

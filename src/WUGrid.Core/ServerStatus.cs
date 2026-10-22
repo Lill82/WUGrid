@@ -23,8 +23,9 @@ namespace WUGrid.Core
         ServiceStopped = 4,
     }
 
-    /// <summary>Routine work a clean BACK server may still be doing: shown as a note, never flagged.</summary>
-    public enum BackActivity { None, ServicingFinishing, ComponentCleanup }
+    /// <summary>Routine work a clean BACK server may still be doing: shown as a note, never flagged. UpdatesInFlight (an
+    /// update downloading or installing with no result yet) also keeps the round from being done.</summary>
+    public enum BackActivity { None, ServicingFinishing, ComponentCleanup, UpdatesInFlight }
 
     /// <summary>What one server's <see cref="Observation"/> means for the round.</summary>
     public sealed class ServerStatus
