@@ -87,6 +87,29 @@ namespace WUGrid.Core.Tests
             Assert.Equal("component cleanup running", Check(o).Reason);
         }
 
+        // Field notes 28-10: the mark stayed after a failed cumulative update, nothing running, Windows Update asking
+        [Fact]
+        public void CleanupMark_WithWindowsUpdateAskingForTheRestart_DoesNotBlock()
+        {
+            var o = Up(Since.AddMinutes(20));
+            o.CbsRebootPending = true;
+            o.WuRebootRequired = true;
+            var e = Check(o);
+            Assert.True(e.Allowed);
+            Assert.Contains("completes it", e.Reason);
+        }
+
+        [Fact]
+        public void CleanupMark_WithWindowsUpdateAsking_StillBlocksWhileTiWorkerRuns()
+        {
+            var o = Up(Since.AddMinutes(20));
+            o.CbsRebootPending = true;
+            o.WuRebootRequired = true;
+            o.TiWorker = true;
+            o.BusyProcesses = new[] { "TiWorker.exe" };
+            Assert.False(Check(o).Allowed);
+        }
+
         // Field notes 18-10: a restart that is not forced came back 1191 (ERROR_SHUTDOWN_USERS_LOGGED_ON) from three servers
         [Fact]
         public void SignedInUser_Blocks_AndSaysWhoInWhichSessionSinceWhen()

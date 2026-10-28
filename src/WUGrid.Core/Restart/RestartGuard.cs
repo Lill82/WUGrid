@@ -38,7 +38,9 @@ namespace WUGrid.Core.Restart
             }
             if (o.BusyProcesses.Length > 0)
                 return No($"update work running: {string.Join(", ", o.BusyProcesses)}");
-            if (o.CbsRebootPending && o.CbsPackagesPending == 0)
+            // The cleanup's mark, unless Windows Update asks for the restart: the mark then outlives the work (a cleanup
+            // that is really running shows TiWorker, which blocks above)
+            if (o.CbsRebootPending && o.CbsPackagesPending == 0 && !o.WuRebootRequired)
                 return No("component cleanup running");
             if (o.SignedIn.Length > 0 && !forceIfSignedIn)
                 return No($"signed in: {SignedIn(o.SignedIn)}. Windows refuses a restart that is not forced until they sign out " +

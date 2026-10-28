@@ -7,7 +7,7 @@
     <Deterministic>true</Deterministic>
     <Product>WUGrid</Product>
     <!-- Bump for every iteration: tools\Publish-Build.ps1 builds into builds\<Version>\ -->
-    <Version>0.14.0</Version>
+    <Version>0.14.1</Version>
   </PropertyGroup>
   <ItemGroup>
     <!-- Lets the solution build on machines without the .NET Framework 4.8 targeting pack (CI, contributors) -->

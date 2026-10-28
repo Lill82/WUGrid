@@ -27,7 +27,11 @@ BACK -> DOWN -> BACK (servicing finishing) -> BACK (component cleanup running) -
   RPC/DCOM up before the security subsystem is. Transient. (Messages are Spanish — the OS locale there is es-ES.)
 - **CBS `RebootPending` with an empty `PackagesPending`.** That is the "reboot mark" the `StartComponentCleanup` idle
   task (CbsTask deep clean) holds while it runs; it clears at the end of each pass (SRV-H: deep clean > 40 min).
-  It is **not** a reboot request — the grid shows it as `component cleanup running`.
+  It is **not** a reboot request — the grid shows it as `component cleanup running`. But the mark can also stay after
+  update work, with no TiWorker running and Windows Update's `RebootRequired` set (SRV-P, Server 2016, 28-10: a
+  cumulative update failed for lack of disk space at 02:15, install retried after a restart at 14:31). The Reboot
+  window refused it as "component cleanup running"; since 0.14.1 the mark does not block a restart when Windows
+  Update asks for one (a cleanup really running still blocks through TiWorker).
 - **PendingFileRenameOperations (PFR)** lingers on many servers right after boot; on its own it meant nothing here.
 
 ## Failures that showed green in the legacy grid (WUGrid M2 flags them)
