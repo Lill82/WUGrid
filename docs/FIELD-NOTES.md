@@ -204,6 +204,25 @@ may set RebootRequired again. The System log carries the steps as `WindowsUpdate
   Update downloads through Delivery Optimization anyway. Event 44 comes from Windows Update itself, so it should appear
   whatever downloads the files — not yet seen on a server.
 
+## A failed update retried after the restart (28-10)
+
+SRV-Q (Server 2016, es-ES) failed the October cumulative update twice overnight with 0x80070070 (not enough disk space;
+43 at 01:06 → 20 at 01:28, 43 at 01:32 → 20 at 01:50). After the restart at 22:41 Windows Update started it again (43 at
+22:46) and TiWorker ran the install, while the row said `BACK · update failed: KB… (0x80070070); TiWorker running`: the
+last *result* per update was still the 20, and a 43 is not a result. Since 0.14.2 a failure followed by a new 43/44 for
+the same update ID is a retry in flight: the row is clean with `update not installed yet: KB… (install started 22:46,
+again after 0x80070070)` and the round is not done until it has a result; a retry that fails again is flagged again.
+TiWorker alone does not say which update, or that it is one (it also finishes servicing after a boot and runs component
+cleanup), but with a 43 and no result yet it is that install: since 0.14.3 the note reads `installing KB… (started
+22:46, again after 0x80070070)`. TiWorker is read every poll, the events every 2 min; when TiWorker stops, the events
+are read at the next poll, so the result shows within seconds of servicing ending (it idles ~2 min after the install
+before it exits).
+The same KB failed with the same code on SRV-P that morning.
+
+The same server reported `LastBootUpTime` about an hour *ahead* of its own clock (boot 23:42, `LocalDateTime` 23:08):
+its clock was changed right after boot (Kernel-General 1, Time-Service 35/37), and `LastBootUpTime` keeps the boot as
+the clock read it then. Uptime shows 0 and the services check waits until the clock catches up. Not handled.
+
 ## PowerShell 5.1 traps hit while writing these
 
 - `@($null).Count` is **1**. `StdRegProv.EnumKey` returns `sNames = $null` for an empty key, so

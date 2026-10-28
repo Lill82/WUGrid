@@ -44,7 +44,7 @@ namespace WUGrid.Core
             if (o.LastBoot.Value < since)
             {
                 // An update still downloading before the restart installs later, maybe after it (FIELD-NOTES 22-10)
-                var coming = InFlight(o.UpdatesInFlight);
+                var coming = InFlight(o.UpdatesInFlight, o.TiWorker);
                 if (o.TiWorker) return new ServerStatus(ServerState.Installing, note: coming ?? "");
                 if (pending.Count > 0) return new ServerStatus(ServerState.RestartPending, note: Join(string.Join("+", pending), coming));
                 return new ServerStatus(ServerState.NoRestartPending, note: Join(o.CbsRebootPending ? "component cleanup running" : "", coming));
@@ -91,10 +91,10 @@ namespace WUGrid.Core
 
             // A flagged row still says TiWorker is running: updates installed after the restart stage packages, so the row
             // goes BACK · PENDING while TiWorker works (FIELD-NOTES, 18-10 evening)
-            if (flags != BackFlag.None && o.TiWorker) notes.Add("TiWorker running");
             // An update downloading or installing after the restart installs later and may want another restart: not a
             // problem, but the round is not done until it has a result
-            var inFlight = v != null && v.Boot == o.LastBoot.Value ? InFlight(v.UpdatesInFlight) : null;
+            var inFlight = v != null && v.Boot == o.LastBoot.Value ? InFlight(v.UpdatesInFlight, o.TiWorker, v) : null;
+            if (flags != BackFlag.None && o.TiWorker && inFlight?.StartsWith("installing ") != true) notes.Add("TiWorker running");
             if (flags != BackFlag.None && inFlight != null) notes.Add(inFlight);
             if (flags != BackFlag.None)
                 return new ServerStatus(ServerState.Back, flags, elapsed: up, note: Join(string.Join("; ", notes), expectedNote));
@@ -116,11 +116,20 @@ namespace WUGrid.Core
         static string Why(Verification.ServiceFailure f) =>
             f == null ? "" : $" ({f.ShortReason}{(f.ShortEarlier != "" ? "; " + f.ShortEarlier : "")})";
 
-        /// <summary>"update not installed yet: KB5127648 (download started 13:05)", or null when there is none.</summary>
-        static string InFlight(IReadOnlyList<Verification.UpdateInFlight> updates) =>
-            updates.Count == 0 ? null
-            : updates.Count == 1 ? $"update not installed yet: {updates[0].Label} ({(updates[0].Installing ? "install" : "download")} started {updates[0].Time:HH:mm})"
-            : $"{updates.Count} updates not installed yet: {string.Join(", ", updates.Select(u => u.Label))}";
+        /// <summary>"update not installed yet: KB5127648 (download started 13:05)", or null when there is none. Install started
+        /// and TiWorker running: "installing KB5127648 (started 13:05)". A retry of an update that failed says so:
+        /// "(…, again after 0x80070070)" (FIELD-NOTES 28-10).</summary>
+        static string InFlight(IReadOnlyList<Verification.UpdateInFlight> updates, bool tiWorker, Verification.ServerVerification v = null)
+        {
+            if (updates.Count == 0) return null;
+            if (updates.Count > 1) return $"{updates.Count} updates not installed yet: {string.Join(", ", updates.Select(u => u.Label))}";
+            var u = updates[0];
+            var before = v?.FailureBefore(u);
+            var again = before != null ? $", again after {Errors.ErrorCatalog.Hex(before.ErrorCode)}" : "";
+            // TiWorker alone can be servicing finishing or cleanup; with Windows Update's 43 it is this install
+            if (u.Installing && tiWorker) return $"installing {u.Label} (started {u.Time:HH:mm}{again})";
+            return $"update not installed yet: {u.Label} ({(u.Installing ? "install" : "download")} started {u.Time:HH:mm}{again})";
+        }
 
         static string Join(string note, string extra) => extra == null ? note : note == "" ? extra : note + "; " + extra;
 

@@ -250,9 +250,30 @@ namespace WUGrid.Core.Verification
         /// <summary>Up long enough, servicing finished and no update in flight: no more checks needed for this boot.</summary>
         public bool Settled { get; }
 
+        /// <summary>Failed and not started again since. Windows Update retries a failed update after the restart: while the
+        /// retry runs it is in <see cref="UpdatesInFlight"/>, not here (FIELD-NOTES 28-10).</summary>
         public IEnumerable<UpdateResult> Failed
         {
-            get { foreach (var u in Updates) if (!u.Succeeded) yield return u; }
+            get { foreach (var u in Updates) if (!u.Succeeded && !Retrying(u)) yield return u; }
+        }
+
+        /// <summary>A failed update Windows Update has started downloading or installing again since.</summary>
+        public bool Retrying(UpdateResult u) => !u.Succeeded && RetryOf(u) != null;
+
+        /// <summary>The update in flight that is a retry of <paramref name="u"/>, or null.</summary>
+        public UpdateInFlight RetryOf(UpdateResult u)
+        {
+            foreach (var i in UpdatesInFlight)
+                if (VerificationBuilder.SameUpdate(i.UpdateId, i.Title, u.UpdateId, u.Title)) return i;
+            return null;
+        }
+
+        /// <summary>The failure an update in flight is a retry of, or null.</summary>
+        public UpdateResult FailureBefore(UpdateInFlight i)
+        {
+            foreach (var u in Updates)
+                if (!u.Succeeded && VerificationBuilder.SameUpdate(i.UpdateId, i.Title, u.UpdateId, u.Title)) return u;
+            return null;
         }
     }
 }

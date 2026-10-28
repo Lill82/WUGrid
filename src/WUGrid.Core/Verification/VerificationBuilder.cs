@@ -146,6 +146,15 @@ namespace WUGrid.Core.Verification
                         .ToList();
         }
 
+        /// <summary>Same update: on the update ID whatever its braces and case, on the title when either has no ID.</summary>
+        public static bool SameUpdate(string id1, string title1, string id2, string title2)
+        {
+            if (id1 != "" && id2 != "")
+                return string.Equals(Guid.TryParse(id1, out var a) ? a.ToString() : id1, Guid.TryParse(id2, out var b) ? b.ToString() : id2,
+                                     StringComparison.OrdinalIgnoreCase);
+            return title1 != "" && string.Equals(title1, title2, StringComparison.OrdinalIgnoreCase);
+        }
+
         public static string KbOf(string title)
         {
             var m = Kb.Match(title ?? "");

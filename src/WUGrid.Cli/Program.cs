@@ -176,7 +176,7 @@ namespace WUGrid.Cli
             if (v == null) return;
             foreach (var u in v.Updates)
             {
-                Console.WriteLine($"  {(u.Succeeded ? "Installed" : "FAILED   ")}   {u.Time:dd-MM HH:mm} {u.Title}");
+                Console.WriteLine($"  {(u.Succeeded ? "Installed" : v.Retrying(u) ? "Retrying " : "FAILED   ")}   {u.Time:dd-MM HH:mm} {u.Title}");
                 if (u.Succeeded) continue;
                 var e = ErrorCatalog.Lookup(u.ErrorCode)[0];
                 Console.WriteLine($"              {ErrorCatalog.Summary(u.ErrorCode)}: {e.Description}");

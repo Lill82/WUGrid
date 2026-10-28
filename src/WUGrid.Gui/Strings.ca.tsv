@@ -170,6 +170,7 @@ No Windows Update installs logged.	No hi ha instal·lacions de Windows Update re
 Updates not installed yet ({0})	Actualitzacions encara sense instal·lar ({0})
 Not restarted yet: it installs later, perhaps after the restart, and may ask for another one. Checked every 2 min.	Encara sense reiniciar: s'instal·larà més tard, potser després del reinici, i pot demanar-ne un altre. Es comprova cada 2 min.
 (install started, no result yet)	(instal·lació iniciada, encara sense resultat)
+(failed, started again since)	(ha fallat, s'ha tornat a iniciar)
 (download started, not installed yet)	(descàrrega iniciada, encara sense instal·lar)
 Not done yet: it installs later and may ask for another restart. Checked again every 2 min until it has a result.	Encara no s'ha acabat: s'instal·larà més tard i pot demanar un altre reinici. Es torna a comprovar cada 2 min fins que tingui resultat.
 Restarts ({0}) and boots ({1})	Reinicis ({0}) i arrencades ({1})

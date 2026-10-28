@@ -66,7 +66,7 @@ namespace WUGrid.Core.Reports
                 if (v != null)
                 {
                     var ok = v.Updates.Count(u => u.Succeeded);
-                    var failed = v.Updates.Count(u => !u.Succeeded);
+                    var failed = v.Failed.Count();
                     if (ok > 0) h.Append("<span class=\"good\">").Append(ok).Append(" installed</span> ");
                     if (failed > 0) h.Append("<span class=\"bad\">").Append(failed).Append(" failed</span> ");
                 }

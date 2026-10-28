@@ -48,6 +48,7 @@ namespace WUGrid.Core.Probing
         long lastUpdateRecord;
         IReadOnlyList<UpdateInFlight> inFlightBefore = new UpdateInFlight[0];
         volatile bool verifyRequested;
+        bool tiWorkerBefore;
         volatile Earlier earlier;
 
         // What the activity log was last told, so it gets changes rather than one line per poll
@@ -227,6 +228,9 @@ namespace WUGrid.Core.Probing
         {
             var cut = since();
             var now = DateTime.Now;
+            // Servicing just stopped: the install it ran has its result logged, read it now rather than at the next pass
+            if (tiWorkerBefore && !tiWorker) verifyRequested = true;
+            tiWorkerBefore = tiWorker;
             if (boot < cut)
             {
                 if (baseline == null)

@@ -331,6 +331,33 @@ namespace WUGrid.Core.Tests
         public void ANewDownload_AfterAResult_IsInFlightAgain() =>
             Assert.Single(Build(new[] { WuFailed(2), WuDownloadStarted(10) }).UpdatesInFlight);
 
+        // FIELD-NOTES 28-10: a cumulative update failed twice overnight (disk full), the server restarted and Windows Update
+        // started it again; the row said "update failed" with TiWorker running the retry
+        [Fact]
+        public void AFailedUpdate_StartedAgain_IsInFlight_NotFailed()
+        {
+            var v = Build(new[] { WuFailed(2), WuInstallStarted(10, Cu.ToUpperInvariant().Trim('{', '}')) }, tiWorker: true);
+            Assert.Empty(v.Failed);
+            Assert.True(v.Retrying(Assert.Single(v.Updates)));
+            Assert.Single(v.UpdatesInFlight);
+
+            var o = new Observation { Ping = true, Wmi = WmiResult.Ok, LastBoot = Boot, TiWorker = true, Verification = v };
+            var s = StateClassifier.Classify(o, Boot.AddMinutes(-19), Boot.AddMinutes(20));
+            Assert.True(s.IsClean);
+            Assert.Equal(BackActivity.UpdatesInFlight, s.Activity);
+            Assert.Equal($"installing KB5127690 (started {Boot.AddMinutes(10):HH:mm}, again after 0x800F0840)", s.Note);
+
+            // Install started but no TiWorker (between its runs, or waiting): not called installing
+            o.TiWorker = false;
+            Assert.Equal($"update not installed yet: KB5127690 (install started {Boot.AddMinutes(10):HH:mm}, again after 0x800F0840)",
+                         StateClassifier.Classify(o, Boot.AddMinutes(-19), Boot.AddMinutes(20)).Note);
+
+            // The retry fails too: flagged again
+            var again = Build(new[] { WuFailed(2), WuInstallStarted(10), WuFailed(30) });
+            Assert.Single(again.Failed);
+            Assert.Empty(again.UpdatesInFlight);
+        }
+
         [Fact]
         public void UntitledDownloadEvent_IsMatchedOnTheUpdateId_WhateverItsBracesAndCase()
         {
@@ -465,6 +492,28 @@ namespace WUGrid.Core.Tests
             var snap = new RoundSnapshot(Boot.AddMinutes(30), Since, new[] { new KeyValuePair<string, Observation>("SRV01", o) });
             Assert.Same(Downloading, Assert.Single(snap.Rows[0].UpdatesInFlight));
             Assert.Contains("\"updatesInFlight\":[{\"update\":\"KB5127648\",\"stage\":\"downloading\"", RoundJson.State(snap, false, null).Replace(" ", ""));
+        }
+
+        // TiWorker alone can be servicing finishing or cleanup; with Windows Update's 43 the row names the install
+        [Fact]
+        public void InstallStarted_WithTiWorker_IsCalledInstalling()
+        {
+            var installing = new UpdateInFlight(Boot.AddMinutes(9), "x (KB5127690)", "KB5127690", "{d}", true);
+            var before = new Observation { Ping = true, Wmi = WmiResult.Ok, LastBoot = Since.AddDays(-2), TiWorker = true, UpdatesInFlight = new[] { installing } };
+            var s = StateClassifier.Classify(before, Since, Boot.AddMinutes(30));
+            Assert.Equal(ServerState.Installing, s.State);
+            Assert.Equal($"installing KB5127690 (started {Boot.AddMinutes(9):HH:mm})", s.Note);
+
+            var flagged = Back(WithInFlight(installing));
+            flagged.TiWorker = true;
+            flagged.WuRebootRequired = true;
+            Assert.Equal($"reboot pending again (WU); installing KB5127690 (started {Boot.AddMinutes(9):HH:mm})",
+                         StateClassifier.Classify(flagged, Since, Boot.AddMinutes(30)).Note);
+
+            // Downloading with TiWorker running is something else's servicing: still "not installed yet"
+            var downloading = Back(WithInFlight(Downloading));
+            downloading.TiWorker = true;
+            Assert.StartsWith("update not installed yet: KB5127648", StateClassifier.Classify(downloading, Since, Boot.AddMinutes(30)).Note);
         }
 
         [Fact]

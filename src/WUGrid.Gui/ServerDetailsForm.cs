@@ -152,8 +152,10 @@ namespace WUGrid.Gui
                 if (v.Updates.Count == 0) d.Line(L.T("No Windows Update installs logged."), body, Palette.MutedText);
                 foreach (var u in v.Updates)
                 {
-                    d.Text(u.Succeeded ? "✓ " : "✗ ", heading, u.Succeeded ? Palette.CleanText : Palette.AlarmText);
-                    d.Line($"{u.Time:dd-MM HH:mm}  {u.Title}", body, Palette.Text);
+                    var retrying = v.Retrying(u);
+                    d.Text(u.Succeeded ? "✓ " : retrying ? "↻ " : "✗ ", heading,
+                           u.Succeeded ? Palette.CleanText : retrying ? Palette.MutedText : Palette.AlarmText);
+                    d.Line($"{u.Time:dd-MM HH:mm}  {u.Title}" + (retrying ? "  " + L.T("(failed, started again since)") : ""), body, Palette.Text);
                     if (!u.Succeeded)
                     {
                         if (firstCode == 0) firstCode = u.ErrorCode;

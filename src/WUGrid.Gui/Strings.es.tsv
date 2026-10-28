@@ -170,6 +170,7 @@ No Windows Update installs logged.	No hay instalaciones de Windows Update regist
 Updates not installed yet ({0})	Actualizaciones aún sin instalar ({0})
 Not restarted yet: it installs later, perhaps after the restart, and may ask for another one. Checked every 2 min.	Aún sin reiniciar: se instalará más tarde, quizá después del reinicio, y puede pedir otro. Se comprueba cada 2 min.
 (install started, no result yet)	(instalación iniciada, aún sin resultado)
+(failed, started again since)	(ha fallado, se ha vuelto a iniciar)
 (download started, not installed yet)	(descarga iniciada, aún sin instalar)
 Not done yet: it installs later and may ask for another restart. Checked again every 2 min until it has a result.	Aún no ha terminado: se instalará más tarde y puede pedir otro reinicio. Se vuelve a comprobar cada 2 min hasta que tenga resultado.
 Restarts ({0}) and boots ({1})	Reinicios ({0}) y arranques ({1})
