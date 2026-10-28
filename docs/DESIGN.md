@@ -188,8 +188,8 @@ checks, `--html` / `--csv`).
 
 ### Restart
 
-Built (GUI **Reboot…**, or right-click a row: the same window with that server ticked). `Win32_OperatingSystem.Win32ShutdownTracker` over DCOM, **never forced**: flags 2 (reboot
-without `EWX_FORCE`), reason `0x80020011` (Operating System: Hotfix, planned), a comment naming the operator and
+Built (GUI **Reboot…**, or right-click a row: the same window with that server ticked). `Win32_OperatingSystem.Win32ShutdownTracker` over DCOM, **not forced**: flags 2 (reboot
+without `EWX_FORCE`; the one exception below), reason `0x80020011` (Operating System: Hotfix, planned), a comment naming the operator and
 workstation (lands in System event 1074), and a warning period (0–300 s, default 60) during which the restart can be
 aborted on the server with `shutdown /a`. The connection enables the caller's privileges (SeRemoteShutdownPrivilege);
 observing never does.
@@ -207,6 +207,11 @@ observing never does.
   user, session and sign-in time. Not read by the poll — an owner lookup per session is too much every few seconds — so
   the Reboot window can tick such a server and Check only shows why it would be skipped. Any user counts, the operator's
   own account too.
+- **Force where a user is signed in** (0.14.0, opt-in, off each time the window opens): `RestartOptions.ForceIfSignedIn`
+  lets the guard pass such a server and sends flags 6 (reboot + `EWX_FORCE`) to it alone — servers with nobody signed in
+  still get flags 2. The sessions are ended and unsaved work is lost; update work still blocks. The confirmation says so,
+  the result reads "restart, FORCED, … (forced, signs out <user> …)", and the audit line has `"force":true` (and
+  `"forceIfSignedIn"` for the option).
 - Confirmation lists the servers; results go to the event pane and to `%APPDATA%\WUGrid\audit.jsonl` (append-only JSON
   lines: time, operator, workstation, server, options, outcome, code).
 
@@ -229,7 +234,7 @@ ConfigMgr or other management agent is assumed.
   go; a failure stops the round.
 - **Guards**, re-checked per server immediately before acting: reachable; not already restarting or installing; no
   other WUGrid action in flight; not on the protect list (servers WUGrid must never act on); for a restart, nobody
-  signed in (built: Windows refuses a restart that is not forced otherwise).
+  signed in (built: Windows refuses a restart that is not forced otherwise; the operator can choose to force it there).
 - **Confirmation**: GUI dialog listing servers and action; CLI prints the plan and requires typed confirmation, or an
   explicit `--yes` together with a server-count limit for unattended runs. `--what-if` everywhere.
 - **Audit**: JSONL, append-only — time, operator, workstation, run id, action, target, parameters, outcome.

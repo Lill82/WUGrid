@@ -20,12 +20,14 @@ namespace WUGrid.Core.Restart
     /// <summary>
     /// Whether a server can be restarted now without cutting off update work. Pure: decided on what the last poll saw,
     /// and decided again on a fresh read just before the restart is sent — only that read lists who is signed in, which
-    /// blocks a restart that is not forced. A server with no restart pending can still be restarted (an admin may want it
-    /// anyway); it is only told.
+    /// blocks a restart that is not forced, unless the operator chose to force it there. A server with no restart pending
+    /// can still be restarted (an admin may want it anyway); it is only told.
     /// </summary>
     public static class RestartGuard
     {
-        public static RestartEligibility Check(Observation o, ServerStatus s)
+        /// <param name="forceIfSignedIn">Users signed in do not block: the restart is forced and ends their sessions. Update
+        /// work still does.</param>
+        public static RestartEligibility Check(Observation o, ServerStatus s, bool forceIfSignedIn = false)
         {
             switch (s.State)
             {
@@ -38,14 +40,21 @@ namespace WUGrid.Core.Restart
                 return No($"update work running: {string.Join(", ", o.BusyProcesses)}");
             if (o.CbsRebootPending && o.CbsPackagesPending == 0)
                 return No("component cleanup running");
-            if (o.SignedIn.Length > 0)
+            if (o.SignedIn.Length > 0 && !forceIfSignedIn)
                 return No($"signed in: {SignedIn(o.SignedIn)}. Windows refuses a restart that is not forced until they sign out " +
                           "(a disconnected session counts too)");
 
-            if (IsPending(s)) return Yes("a restart is pending: this one completes it");
-            if (s.State == ServerState.NoRestartPending) return Yes("no restart pending: only if you want one anyway");
-            if (s.State == ServerState.Back && o.LastBoot.HasValue) return Yes($"already restarted in this round, at {o.LastBoot:HH:mm}");
-            return Yes("");
+            var force = o.SignedIn.Length > 0 ? $"forced, signs out {SignedIn(o.SignedIn)}: unsaved work is lost" : "";
+            var note = Note(o, s);
+            return Yes(force != "" && note != "" ? force + "; " + note : force + note);
+        }
+
+        static string Note(Observation o, ServerStatus s)
+        {
+            if (IsPending(s)) return "a restart is pending: this one completes it";
+            if (s.State == ServerState.NoRestartPending) return "no restart pending: only if you want one anyway";
+            if (s.State == ServerState.Back && o.LastBoot.HasValue) return $"already restarted in this round, at {o.LastBoot:HH:mm}";
+            return "";
         }
 
         /// <summary>For "tick all with a restart pending".</summary>

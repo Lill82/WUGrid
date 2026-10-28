@@ -61,7 +61,9 @@ wugrid-cli error 0x800F0840                 explain an error code
     shutdown already under way), and each is checked again just before the restart is sent;
   - **never forced** (`Win32ShutdownTracker`, reboot without force): running programs can delay or cancel it, and
     Windows refuses it while a user is signed in, even in a disconnected session. The check just before sending lists
-    who is signed in and skips that server, naming the user, the session and since when (**Check only** shows it too);
+    who is signed in and skips that server, naming the user, the session and since when (**Check only** shows it too).
+    Tick **Force the restart where a user is signed in** to restart such a server anyway: it alone is forced, its
+    sessions are ended and unsaved work is lost; update work still blocks it, and the audit log records `"force":true`;
   - an optional warning period (default 60 s) during which the restart can be aborted on the server with `shutdown /a`;
   - confirmed before sending; **Check only** runs everything except the restart call;
   - every request and result is appended to `%APPDATA%\WUGrid\audit.jsonl` (who, from where, which server, options,

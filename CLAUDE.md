@@ -12,8 +12,10 @@ read it before changing state logic). Estate-specific context, if present, is in
 - **Observe by default.** Watching and verifying never change a target. Anything that acts (restart, scan trigger,
   install, scheduled task) is an explicitly named action: plan shown first, explicit confirmation, guards re-checked per
   server, written to the audit log. No observation ever triggers an action by itself.
-- **Restarts are never forced** (`Win32ShutdownTracker` flags 2, no `EWX_FORCE`) and only go to servers `RestartGuard`
-  allows (no update work running); `RestartAction` re-reads each server just before sending. Keep it that way.
+- **Restarts are not forced** (`Win32ShutdownTracker` flags 2, no `EWX_FORCE`) and only go to servers `RestartGuard`
+  allows (no update work running); `RestartAction` re-reads each server just before sending. The one exception (0.14.0)
+  is the Reboot window's opt-in "force where a user is signed in": flags 6, only on a server whose re-check finds users
+  signed in, still blocked by update work, recorded as `"force":true` in the audit log. Keep it that narrow.
 - **Never restart a real server while developing or testing** — use check-only, the demo or unit tests; a real restart
   test needs the operator to name the server for that test.
 - **Agentless, DCOM only**: `System.Management` over DCOM, registry via `root\default:StdRegProv`, ICMP for up/down.

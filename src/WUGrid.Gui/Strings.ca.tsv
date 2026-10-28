@@ -97,6 +97,8 @@ Restart these {0} servers now?	Vols reiniciar aquests {0} servidors ara?
 Not forced; {0} s warning.	Sense forçar; avís de {0} s.
 Not forced; no warning.	Sense forçar; sense avís.
 Each server is checked again just before; one that started update work or has a user signed in is skipped.	Cada servidor es torna a comprovar just abans; s'omet el que hagi començat feina d'actualització o tingui un usuari amb la sessió iniciada.
+Force the restart where a user is signed in: their sessions are ended and unsaved work is lost	Força el reinici on hi hagi un usuari amb la sessió iniciada: se li tanquen les sessions i es perd la feina no desada
+FORCED where a user is signed in: their sessions are ended and unsaved work is lost. Each server is checked again just before; one that started update work is skipped.	FORÇAT on hi hagi un usuari amb la sessió iniciada: se li tanquen les sessions i es perd la feina no desada. Cada servidor es torna a comprovar just abans; s'omet el que hagi començat feina d'actualització.
 Check only	Només comprova
 Restart…	Reinicia…
 checking…	comprovant…

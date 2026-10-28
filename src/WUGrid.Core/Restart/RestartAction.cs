@@ -18,16 +18,21 @@ namespace WUGrid.Core.Restart
 
         /// <summary>Do everything except the restart call: connect with privileges, re-check, report.</summary>
         public bool CheckOnly { get; set; }
+
+        /// <summary>Force the restart (EWX_FORCE) on a server where the re-check finds a user signed in, instead of skipping
+        /// it: their sessions are ended and unsaved work is lost. Off by default; update work still blocks the restart.</summary>
+        public bool ForceIfSignedIn { get; set; }
     }
 
     public sealed class RestartResult
     {
-        public RestartResult(string server, RestartOutcome outcome, string detail, int code = 0)
+        public RestartResult(string server, RestartOutcome outcome, string detail, int code = 0, bool forced = false)
         {
             Server = server;
             Outcome = outcome;
             Detail = detail ?? "";
             Code = code;
+            Forced = forced;
         }
 
         public string Server { get; }
@@ -36,14 +41,18 @@ namespace WUGrid.Core.Restart
 
         /// <summary>HRESULT for failures (look it up in the error catalog), 0 otherwise.</summary>
         public int Code { get; }
+
+        /// <summary>Sent (or, check-only, would be sent) forced: users were signed in and the operator allowed it.</summary>
+        public bool Forced { get; }
     }
 
     /// <summary>
-    /// Restarts one server, never forced: Win32_OperatingSystem.Win32ShutdownTracker with flags 2 (reboot, no force), so
+    /// Restarts one server, not forced: Win32_OperatingSystem.Win32ShutdownTracker with flags 2 (reboot, no force), so
     /// running programs can delay or cancel it, and a warning period during which it can be aborted on the server
     /// (shutdown /a). Before sending it, the server is read again over a fresh connection, with who is signed in, and the
     /// <see cref="RestartGuard"/> applied to that read: anything that started update work in the meantime is skipped, and
-    /// so is a server with a user signed in, which Windows would refuse with ERROR_SHUTDOWN_USERS_LOGGED_ON.
+    /// so is a server with a user signed in, which Windows would refuse with ERROR_SHUTDOWN_USERS_LOGGED_ON — unless the
+    /// operator chose <see cref="RestartOptions.ForceIfSignedIn"/>: then that server alone gets flags 6 (reboot, forced).
     /// </summary>
     public static class RestartAction
     {
@@ -53,6 +62,9 @@ namespace WUGrid.Core.Restart
 
         /// <summary>Reboot without EWX_FORCE.</summary>
         public const int RebootNotForced = 2;
+
+        /// <summary>Reboot with EWX_FORCE: only for a server with users signed in, when the operator asked for it.</summary>
+        public const int RebootForced = 6;
 
         static readonly TimeSpan Timeout = TimeSpan.FromSeconds(15);
 
@@ -76,15 +88,16 @@ namespace WUGrid.Core.Restart
                 var o = new Observation { Ping = true };
                 ServerProbe.ReadState(scope, registry, Timeout, o);
                 o.SignedIn = SessionReader.Read(scope, Timeout);
-                var check = RestartGuard.Check(o, StateClassifier.Classify(o, since, DateTime.Now));
+                var check = RestartGuard.Check(o, StateClassifier.Classify(o, since, DateTime.Now), options.ForceIfSignedIn);
                 if (!check.Allowed) return new RestartResult(server, RestartOutcome.Skipped, check.Reason);
+                var forced = options.ForceIfSignedIn && o.SignedIn.Length > 0;
                 if (options.CheckOnly)
-                    return new RestartResult(server, RestartOutcome.WouldRestart, Describe(options) + (check.Reason != "" ? $" ({check.Reason})" : ""));
+                    return new RestartResult(server, RestartOutcome.WouldRestart, Describe(options, forced) + (check.Reason != "" ? $" ({check.Reason})" : ""), forced: forced);
 
-                var rv = Shutdown(scope, options);
+                var rv = Shutdown(scope, options, forced);
                 return rv == 0
-                    ? new RestartResult(server, RestartOutcome.Requested, Describe(options))
-                    : new RestartResult(server, RestartOutcome.Failed, $"Win32ShutdownTracker returned {rv}", unchecked((int)(0x80070000u | (rv & 0xFFFF))));
+                    ? new RestartResult(server, RestartOutcome.Requested, Describe(options, forced) + (forced ? $" ({check.Reason})" : ""), forced: forced)
+                    : new RestartResult(server, RestartOutcome.Failed, $"Win32ShutdownTracker returned {rv}", unchecked((int)(0x80070000u | (rv & 0xFFFF))), forced);
             }
             catch (Exception ex)
             {
@@ -97,10 +110,10 @@ namespace WUGrid.Core.Restart
             }
         }
 
-        static string Describe(RestartOptions o) =>
-            o.WarningSeconds > 0 ? $"restart, not forced, {o.WarningSeconds} s warning" : "restart, not forced, no warning";
+        static string Describe(RestartOptions o, bool forced) =>
+            $"restart, {(forced ? "FORCED" : "not forced")}, " + (o.WarningSeconds > 0 ? $"{o.WarningSeconds} s warning" : "no warning");
 
-        static uint Shutdown(ManagementScope scope, RestartOptions options)
+        static uint Shutdown(ManagementScope scope, RestartOptions options, bool forced)
         {
             using (var searcher = new ManagementObjectSearcher(scope, new ObjectQuery("SELECT Name FROM Win32_OperatingSystem")))
             using (var results = searcher.Get())
@@ -112,7 +125,7 @@ namespace WUGrid.Core.Restart
                     args["Timeout"] = (uint)Math.Max(0, options.WarningSeconds);
                     args["Comment"] = CommentFor(options);
                     args["ReasonCode"] = ReasonCode;
-                    args["Flags"] = RebootNotForced;
+                    args["Flags"] = forced ? RebootForced : RebootNotForced;
                     using (var result = os.InvokeMethod("Win32ShutdownTracker", args, null))
                         return Convert.ToUInt32(result["ReturnValue"]);
                 }

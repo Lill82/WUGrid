@@ -13,8 +13,9 @@ namespace WUGrid.Gui
 {
     /// <summary>
     /// Pick servers to restart. Only servers whose last poll shows no update work can be ticked; the list follows the grid
-    /// while open, and a server that starts update work is unticked. Restarts are never forced, are confirmed first, are
-    /// checked again on each server just before they are sent, and go to the audit log.
+    /// while open, and a server that starts update work is unticked. Restarts are not forced (unless the operator ticks
+    /// forcing where a user is signed in), are confirmed first, are checked again on each server just before they are
+    /// sent, and go to the audit log.
     /// </summary>
     sealed class RestartForm : Form
     {
@@ -29,6 +30,7 @@ namespace WUGrid.Gui
         readonly ListView list = new ListView();
         readonly ComboBox warning = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList };
         readonly TextBox comment = new TextBox();
+        readonly CheckBox force = new CheckBox { Text = L.T("Force the restart where a user is signed in: their sessions are ended and unsaved work is lost"), AutoSize = true };
         readonly Button checkOnly = new Button { Text = L.T("Check only"), AutoSize = true };
         readonly Button restart = new Button { Text = L.T("Restart…"), AutoSize = true };
         readonly System.Windows.Forms.Timer timer = new System.Windows.Forms.Timer { Interval = 2000 };
@@ -103,7 +105,7 @@ namespace WUGrid.Gui
 
         Control BuildOptions()
         {
-            var panel = new TableLayoutPanel { Dock = DockStyle.Bottom, Height = Px(96), Padding = new Padding(Px(12), Px(8), Px(12), 0), ColumnCount = 4 };
+            var panel = new TableLayoutPanel { Dock = DockStyle.Bottom, Height = Px(124), Padding = new Padding(Px(12), Px(8), Px(12), 0), ColumnCount = 4 };
             panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
@@ -116,13 +118,18 @@ namespace WUGrid.Gui
             panel.Controls.Add(warning, 1, 0);
             panel.Controls.Add(new Label { Text = L.T("Comment"), AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(Px(16), 0, 0, 0) }, 2, 0);
             panel.Controls.Add(comment, 3, 0);
+            force.ForeColor = Palette.AlarmText;
+            force.Margin = new Padding(0, Px(6), 0, 0);
+            force.CheckedChanged += (s, e) => RefreshList();
+            panel.Controls.Add(force, 0, 1);
+            panel.SetColumnSpan(force, 4);
             var note = new Label
             {
                 AutoSize = true, ForeColor = Palette.MutedText, MaximumSize = new Size(Px(940), 0),
                 Text = L.F("Not forced: running programs can delay or cancel the restart, and Windows refuses it while a user is signed in, even disconnected. Until it runs it can be aborted on the server with shutdown /a. Each server is checked again just before: one that started update work or has a user signed in is skipped. Everything is recorded in {0}.",
                            preview ? @"%APPDATA%\WUGrid\audit.jsonl" : audit.Path),
             };
-            panel.Controls.Add(note, 0, 1);
+            panel.Controls.Add(note, 0, 2);
             panel.SetColumnSpan(note, 4);
             return panel;
         }
@@ -161,7 +168,7 @@ namespace WUGrid.Gui
             foreach (var row in snap.Rows)
             {
                 var item = list.Items[row.Name] ?? list.Items.Add(new ListViewItem(new[] { row.Name, "", "", "" }) { Name = row.Name, UseItemStyleForSubItems = false });
-                var el = RestartGuard.Check(row.Observation, row.Status);
+                var el = RestartGuard.Check(row.Observation, row.Status, force.Checked);
                 eligible[row.Name] = el;
                 item.SubItems[1].Text = row.Status.Label;
                 if (RestartGuard.IsPending(row.Status)) pending.Add(row.Name); else pending.Remove(row.Name);
@@ -192,13 +199,18 @@ namespace WUGrid.Gui
         {
             var names = list.CheckedItems.Cast<ListViewItem>().Select(i => i.Text).ToList();
             if (names.Count == 0 || preview) return;
-            var options = new RestartOptions { WarningSeconds = Warnings[warning.SelectedIndex], Comment = comment.Text, CheckOnly = checkOnlyRun };
+            var options = new RestartOptions
+            {
+                WarningSeconds = Warnings[warning.SelectedIndex], Comment = comment.Text, CheckOnly = checkOnlyRun, ForceIfSignedIn = force.Checked,
+            };
             if (!checkOnlyRun)
             {
                 var text = (names.Count == 1 ? L.T("Restart this server now?") : L.F("Restart these {0} servers now?", names.Count)) +
                            $"\n\n{string.Join(", ", names)}\n\n" +
                            (options.WarningSeconds > 0 ? L.F("Not forced; {0} s warning.", options.WarningSeconds) : L.T("Not forced; no warning.")) + " " +
-                           L.T("Each server is checked again just before; one that started update work or has a user signed in is skipped.");
+                           (options.ForceIfSignedIn
+                               ? L.T("FORCED where a user is signed in: their sessions are ended and unsaved work is lost. Each server is checked again just before; one that started update work is skipped.")
+                               : L.T("Each server is checked again just before; one that started update work or has a user signed in is skipped."));
                 if (MessageBox.Show(this, text, L.T("Reboot servers"), MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) != DialogResult.Yes)
                     return;
             }

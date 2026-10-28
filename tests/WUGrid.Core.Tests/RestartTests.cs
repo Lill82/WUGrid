@@ -100,6 +100,34 @@ namespace WUGrid.Core.Tests
         }
 
         [Fact]
+        public void SignedInUser_WithForce_IsAllowed_AndSaysWhoIsSignedOut()
+        {
+            var o = NotRestarted(); o.CbsRebootPending = true; o.CbsPackagesPending = 40;
+            o.SignedIn = new[] { new UserSession(6, @"CONTOSO\admin", new DateTime(2026, 9, 16, 8, 46, 20)) };
+            var e = RestartGuard.Check(o, StateClassifier.Classify(o, Since, Now), forceIfSignedIn: true);
+            Assert.True(e.Allowed);
+            Assert.StartsWith(@"forced, signs out CONTOSO\admin (session 6, ", e.Reason);
+            Assert.Contains("unsaved work is lost; a restart is pending", e.Reason);
+        }
+
+        [Fact]
+        public void Force_DoesNotLiftTheUpdateWorkGuard()
+        {
+            var o = Up(Since.AddMinutes(20));
+            o.BusyProcesses = new[] { "msiexec.exe" };
+            o.SignedIn = new[] { new UserSession(2, @"CONTOSO\admin", null) };
+            Assert.False(RestartGuard.Check(o, StateClassifier.Classify(o, Since, Now), forceIfSignedIn: true).Allowed);
+        }
+
+        [Fact]
+        public void Force_WithNobodySignedIn_ChangesNothing()
+        {
+            var o = NotRestarted();
+            var s = StateClassifier.Classify(o, Since, Now);
+            Assert.Equal(RestartGuard.Check(o, s).Reason, RestartGuard.Check(o, s, forceIfSignedIn: true).Reason);
+        }
+
+        [Fact]
         public void ManySignedIn_NamesTheFirstThree_AndCountsTheRest()
         {
             var o = NotRestarted();
@@ -211,12 +239,22 @@ namespace WUGrid.Core.Tests
             Assert.Contains("\"operator\":\"CONTOSO\\\\admin\"", line);
             Assert.Contains("\"server\":\"SRV01\"", line);
             Assert.Contains("\"force\":false", line);
+            Assert.Contains("\"forceIfSignedIn\":false", line);
             Assert.Contains("\"checkOnly\":false", line);
             Assert.Contains("\"warningSeconds\":60", line);
             Assert.Contains("\"reasonCode\":\"0x80020011\"", line);
             Assert.Contains("\"comment\":\"after \\\"patch\\\" round\\nwave 1\"", line);
             Assert.Contains("\"outcome\":\"Requested\"", line);
             Assert.EndsWith("\"code\":\"0x00000000\"}", line);
+        }
+
+        [Fact]
+        public void Line_SaysWhenTheRestartWasForced()
+        {
+            var result = new RestartResult("SRV01", RestartOutcome.Requested, "restart, FORCED, 60 s warning", forced: true);
+            var line = AuditLog.Line(result, new RestartOptions { ForceIfSignedIn = true }, new DateTime(2026, 10, 28, 9, 0, 0), @"CONTOSO\admin", "ADMINPC");
+            Assert.Contains("\"force\":true", line);
+            Assert.Contains("\"forceIfSignedIn\":true", line);
         }
 
         [Fact]

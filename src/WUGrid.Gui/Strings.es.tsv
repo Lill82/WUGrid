@@ -97,6 +97,8 @@ Restart these {0} servers now?	¿Reiniciar estos {0} servidores ahora?
 Not forced; {0} s warning.	Sin forzar; aviso de {0} s.
 Not forced; no warning.	Sin forzar; sin aviso.
 Each server is checked again just before; one that started update work or has a user signed in is skipped.	Cada servidor se vuelve a comprobar justo antes; se omite el que haya empezado trabajo de actualización o tenga un usuario con la sesión iniciada.
+Force the restart where a user is signed in: their sessions are ended and unsaved work is lost	Forzar el reinicio donde haya un usuario con la sesión iniciada: se cierran sus sesiones y se pierde el trabajo no guardado
+FORCED where a user is signed in: their sessions are ended and unsaved work is lost. Each server is checked again just before; one that started update work is skipped.	FORZADO donde haya un usuario con la sesión iniciada: se cierran sus sesiones y se pierde el trabajo no guardado. Cada servidor se vuelve a comprobar justo antes; se omite el que haya empezado trabajo de actualización.
 Check only	Solo comprobar
 Restart…	Reiniciar…
 checking…	comprobando…
